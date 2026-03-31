@@ -1,15 +1,21 @@
 {
   "name": "claude-pet",
   "version": "1.0.0",
-  "description": "A living desktop companion for your Mac mini. Claude eats tokens, reacts to weather, changes with the time of day, and talks in Animal Crossing bleeps.",
+  "description": "A living desktop companion that reacts to Claude Code/Cowork activity. Eats tokens, reacts to weather, changes with time of day, and talks in Animal Crossing bleeps.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["claude", "claude-code", "desktop-pet", "tamagotchi", "developer-tools"],
+  "author": "Thomas Reeve",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomas-reeve/claude-pet.git"
+  },
+  "engines": {
+    "node": ">=16"
+  },
   "dependencies": {
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",

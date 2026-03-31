@@ -2,8 +2,7 @@
 
 A living desktop companion that reacts to your Claude Code and Cowork activity. It eats tokens, reacts to real weather, changes with the time of day, and talks in Animal Crossing bleeps.
 
-<!-- TODO: Replace with your screen recording -->
-![Claude Pet demo](demo.gif)
+<!-- Add a demo.gif here to show Claude Pet in action -->
 
 ## Features
 
@@ -18,6 +17,8 @@ A living desktop companion that reacts to your Claude Code and Cowork activity. 
 - **Mobile friendly** — works on phones via local network or Tailscale
 
 ## Quick Start
+
+Requires [Node.js](https://nodejs.org/) 16 or higher.
 
 ```bash
 git clone https://github.com/thomas-reeve/claude-pet.git

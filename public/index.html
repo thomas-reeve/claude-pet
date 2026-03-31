@@ -413,6 +413,26 @@
     letter-spacing: 0.5px;
   }
 
+  /* FOOD BOWL — clickable + shake when empty */
+  #food-bowl { cursor: pointer; }
+  #food-bowl:hover .bowl { filter: brightness(1.15); }
+  #food-bowl.shaking .bowl {
+    animation: bowl-shake 0.5s ease-in-out infinite;
+  }
+  @keyframes bowl-shake {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    75% { transform: rotate(5deg); }
+  }
+  #food-bowl.feeding .bowl {
+    animation: bowl-bounce 0.3s ease-out;
+  }
+  @keyframes bowl-bounce {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+  }
+
   /* CLAUDE CHARACTER — blocky robot */
   #claude {
     position: absolute;
@@ -422,6 +442,10 @@
     z-index: 15;
     cursor: pointer;
     user-select: none;
+    transition: left 0.8s ease-in-out, transform 0.8s ease-in-out;
+  }
+  #claude.at-bowl {
+    left: calc(50% - 80px);
   }
 
   #claude-body {
@@ -666,8 +690,13 @@
 
   /* SLEEPING */
   #claude.sleeping .c-eye {
-    transform: scaleY(0.08) !important;
+    transform: scaleY(0.08);
     animation: none;
+  }
+  #claude.sleeping .c-eye.peeking {
+    animation: none;
+    transform: scaleY(0.5);
+    transition: transform 0.4s ease-in-out;
   }
   #claude.sleeping .c-leg { animation: none; transform: translateY(5px); }
   #claude.sleeping #claude-body { animation: sleep-sway 6s ease-in-out infinite; }
@@ -765,40 +794,54 @@
   /* SPEECH BUBBLE */
   #speech-bubble {
     position: absolute;
-    bottom: 200px;
+    bottom: 270px;
     left: 50%;
-    transform: translateX(-40%);
+    transform: translateX(-50%);
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 12px 12px 12px 4px;
+    border-radius: 12px 12px 12px 12px;
     padding: 8px 14px;
     font-family: var(--pixel);
     font-size: 14px;
     color: var(--text);
-    white-space: nowrap;
     z-index: 30;
     cursor: pointer;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s, transform 0.3s;
-    transform: translateX(-40%) translateY(4px);
+    transform: translateX(-50%) translateY(4px);
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     max-width: 240px;
     white-space: normal;
-    text-align: left;
+    text-align: center;
   }
   #speech-bubble.visible {
     opacity: 1;
     pointer-events: all;
-    transform: translateX(-40%) translateY(0);
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Speech tail pointing down */
+  #speech-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--border);
   }
   #speech-bubble::after {
-    content: '🔊';
+    content: '';
     position: absolute;
-    bottom: -2px;
-    right: -2px;
-    font-size: 10px;
-    opacity: 0.5;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 7px solid var(--surface);
   }
   #speech-bubble.playing::after { content: '🔈'; opacity: 1; }
 
@@ -853,7 +896,7 @@
     pointer-events: all;
   }
   #terminal-window {
-    width: 380px;
+    width: 560px;
     max-width: 90vw;
     max-height: 70vh;
     background: #0a1628;
@@ -1254,7 +1297,7 @@
     #speech-bubble {
       font-size: 12px;
       max-width: 180px;
-      bottom: 180px;
+      bottom: 260px;
     }
     #comeback-text { font-size: 48px; }
     #terminal-window { width: 95vw; }
@@ -1311,7 +1354,7 @@
   <!-- ROOM / DESK -->
   <div id="room">
     <div id="desk-items">
-      <div id="food-bowl">
+      <div id="food-bowl" onclick="manualFeed()">
         <div class="bowl">
           <div class="bowl-fill" id="bowl-fill" style="height:80%"></div>
         </div>
@@ -1679,6 +1722,14 @@ function triggerSpeech() {
   const text = getSpeech(state.mode, state.hunger, state.weather, state.timeOfDay);
   showSpeech(text);
   playSpeechSound(text);
+
+  // Peek one eye open when sleeping
+  if (state.mode === 'sleeping') {
+    const eyes = document.querySelectorAll('.c-eye');
+    const eye = eyes[Math.random() > 0.5 ? 0 : 1];
+    eye.classList.add('peeking');
+    setTimeout(() => eye.classList.remove('peeking'), 1200);
+  }
 }
 
 // Auto-speech timer
@@ -1868,6 +1919,40 @@ function spawnFoodParticle(task) {
 }
 
 // ============================================================
+// FOOD BOWL
+// ============================================================
+let walkTimeout = null;
+
+function walkToBowl() {
+  const claude = document.getElementById('claude');
+  if (claude.classList.contains('sleeping') || claude.classList.contains('rate_limited')) return;
+  claude.classList.add('at-bowl');
+  if (walkTimeout) clearTimeout(walkTimeout);
+  walkTimeout = setTimeout(() => {
+    claude.classList.remove('at-bowl');
+  }, 3000);
+}
+
+function manualFeed() {
+  const bowl = document.getElementById('food-bowl');
+  bowl.classList.add('feeding');
+  setTimeout(() => bowl.classList.remove('feeding'), 400);
+  walkToBowl();
+  fetch('/feed?tokens=1000&task=treat').catch(() => {});
+  showSpeech(speeches.working_ate[Math.floor(Math.random() * speeches.working_ate.length)]);
+  spawnFoodParticle('treat');
+}
+
+function updateBowlShake(hunger) {
+  const bowl = document.getElementById('food-bowl');
+  if (hunger <= 15) {
+    bowl.classList.add('shaking');
+  } else {
+    bowl.classList.remove('shaking');
+  }
+}
+
+// ============================================================
 // LOCATION MODAL
 // ============================================================
 let searchTimeout = null;
@@ -1920,12 +2005,21 @@ async function geocodeSearch(query) {
       results.innerHTML = '<div class="loc-result" style="cursor:default;color:var(--text2)">No results found</div>';
       return;
     }
-    results.innerHTML = data.results.map(r => {
+    results.innerHTML = '';
+    data.results.forEach(r => {
       const parts = [r.name, r.admin1, r.country].filter(Boolean);
-      return `<div class="loc-result" onclick="selectLocation(${r.latitude},${r.longitude},'${parts.join(', ').replace(/'/g, "\\'")}')">
-        ${r.name} <span class="loc-country">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
-      </div>`;
-    }).join('');
+      const el = document.createElement('div');
+      el.className = 'loc-result';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = r.name + ' ';
+      const countrySpan = document.createElement('span');
+      countrySpan.className = 'loc-country';
+      countrySpan.textContent = [r.admin1, r.country].filter(Boolean).join(', ');
+      el.appendChild(nameSpan);
+      el.appendChild(countrySpan);
+      el.addEventListener('click', () => selectLocation(r.latitude, r.longitude, parts.join(', ')));
+      results.appendChild(el);
+    });
   } catch {
     results.innerHTML = '<div class="loc-result" style="cursor:default;color:var(--text2)">Search failed</div>';
   }
@@ -1958,30 +2052,30 @@ document.addEventListener('keydown', (e) => {
 function openTerminal() {
   const modal = document.getElementById('terminal-modal');
   const body = document.getElementById('terminal-body');
-  let html = '<div class="t-line"><span class="t-prompt">$</span> claude-pet --status</div>';
+  body.innerHTML = '';
 
-  // Current status
+  function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function addLine(html, cls) { const el = document.createElement('div'); el.className = 't-line' + (cls ? ' ' + cls : ''); el.innerHTML = html; body.appendChild(el); }
+
   const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED' };
   const stateColor = state.mode === 'working' ? 't-accent' : state.mode === 'rate_limited' ? 't-warn' : '';
-  html += `<div class="t-line"><span class="${stateColor}">[${labels[state.mode] || 'IDLE'}]</span> ${state.task || 'no active task'}</div>`;
-  html += `<div class="t-line"><span class="t-dim">hunger:</span> ${Math.round(state.hunger)}%  <span class="t-dim">tokens today:</span> ${formatTokens(state.tokensToday)}</div>`;
-  html += '<div class="t-line">&nbsp;</div>';
 
-  // Recent meals
-  html += '<div class="t-line"><span class="t-prompt">$</span> claude-pet --history</div>';
+  addLine('<span class="t-prompt">$</span> claude-pet --status');
+  addLine(`<span class="${stateColor}">[${labels[state.mode] || 'IDLE'}]</span> ${esc(state.task || 'no active task')}`);
+  addLine(`<span class="t-dim">hunger:</span> ${Math.round(state.hunger)}%  <span class="t-dim">tokens today:</span> ${formatTokens(state.tokensToday)}`);
+  addLine('&nbsp;');
+
+  addLine('<span class="t-prompt">$</span> claude-pet --history');
   if (state.recentMeals.length === 0) {
-    html += '<div class="t-line"><span class="t-dim">no recent activity</span></div>';
+    addLine('<span class="t-dim">no recent activity</span>');
   } else {
     state.recentMeals.forEach(meal => {
-      const ago = timeAgo(meal.time);
-      html += `<div class="t-line"><span class="t-dim">${ago}</span>  <span class="t-accent">${meal.task}</span>  <span class="t-dim">${formatTokens(meal.tokens)} tok</span></div>`;
+      addLine(`<span class="t-dim">${esc(timeAgo(meal.time))}</span>  <span class="t-accent">${esc(meal.task)}</span>  <span class="t-dim">${formatTokens(meal.tokens)} tok</span>`);
     });
   }
 
-  html += '<div class="t-line">&nbsp;</div>';
-  html += '<div class="t-line"><span class="t-dim">click anywhere to close</span></div>';
-
-  body.innerHTML = html;
+  addLine('&nbsp;');
+  addLine('<span class="t-dim">click anywhere to close</span>');
   modal.classList.add('visible');
 }
 
@@ -2110,6 +2204,7 @@ function render(s) {
 
   // BOWL FILL
   document.getElementById('bowl-fill').style.height = hunger + '%';
+  updateBowlShake(hunger);
 
   // MEAL LOG
   const mealLog = document.getElementById('meal-log');
@@ -2182,6 +2277,7 @@ function connect() {
       if (prev !== 'working' && state.mode === 'working') {
         showSpeech(speeches.working[Math.floor(Math.random() * speeches.working.length)]);
         spawnFoodParticle(state.task);
+        walkToBowl();
       }
 
       if (prev !== 'sleeping' && state.mode === 'sleeping') {
