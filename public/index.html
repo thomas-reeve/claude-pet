@@ -919,6 +919,70 @@
     background: #3a4a65;
   }
 
+  /* WELCOME MODAL */
+  #welcome-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  #welcome-modal.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #welcome-window {
+    text-align: center;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.4s;
+  }
+  #welcome-modal.visible #welcome-window {
+    transform: scale(1) translateY(0);
+  }
+  #welcome-bubble {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px 16px 16px 4px;
+    padding: 20px 28px;
+    font-family: var(--pixel);
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    max-width: 320px;
+  }
+  #welcome-input {
+    width: 240px;
+    padding: 12px 16px;
+    font-family: var(--pixel);
+    font-size: 16px;
+    text-align: center;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #welcome-input:focus {
+    border-color: var(--accent);
+  }
+  #welcome-input::placeholder {
+    color: var(--text2);
+  }
+  #welcome-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 10px;
+  }
+
   /* LOCATION MODAL */
   #location-modal {
     position: fixed;
@@ -1407,6 +1471,15 @@ eat(t)
   <div id="countdown">
     <div id="countdown-label">RESETS IN</div>
     <div id="countdown-time">--:--:--</div>
+  </div>
+</div>
+
+<!-- WELCOME MODAL -->
+<div id="welcome-modal">
+  <div id="welcome-window">
+    <div id="welcome-bubble">Hey! I'm Claude Pet. What's your name?</div>
+    <input type="text" id="welcome-input" placeholder="Type your name..." autocomplete="off">
+    <div id="welcome-hint">press enter</div>
   </div>
 </div>
 
@@ -2143,10 +2216,48 @@ fetch('/status').then(r => r.json()).then(s => {
 connect();
 scheduleNextSpeech();
 
-// Trigger intro speech after a moment
-setTimeout(() => {
-  showSpeech("hello! tap me to hear my voice 🔊");
-}, 2000);
+// Welcome flow or intro speech
+function checkWelcome() {
+  fetch('/config').then(r => r.json()).then(cfg => {
+    if (!cfg.ownerName) {
+      showWelcome();
+    } else {
+      setTimeout(() => showSpeech("hello! tap me to hear my voice"), 2000);
+    }
+  }).catch(() => {
+    setTimeout(() => showSpeech("hello! tap me to hear my voice"), 2000);
+  });
+}
+
+function showWelcome() {
+  const modal = document.getElementById('welcome-modal');
+  const input = document.getElementById('welcome-input');
+  setTimeout(() => {
+    modal.classList.add('visible');
+    setTimeout(() => input.focus(), 400);
+  }, 1000);
+}
+
+document.getElementById('welcome-input').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  const name = e.target.value.trim();
+  if (!name) return;
+  await fetch('/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerName: name })
+  });
+  document.getElementById('welcome-modal').classList.remove('visible');
+  setTimeout(() => {
+    showSpeech(`nice to meet you, ${name}!`);
+    playSpeechSound(`nice to meet you, ${name}!`);
+    setTimeout(() => {
+      showSpeech("psst — click the weather to change your name or location");
+    }, 5000);
+  }, 500);
+});
+
+checkWelcome();
 
 // Update time of day check every minute
 setInterval(() => {
