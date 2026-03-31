@@ -1385,10 +1385,13 @@ eat(t)
     </div>
   </div>
 
-  <!-- LOCATION MODAL -->
+  <!-- SETTINGS MODAL -->
   <div id="location-modal" onclick="if(event.target===this)closeLocation()">
     <div id="location-window">
-      <h3>Set Location</h3>
+      <h3>Settings</h3>
+      <label style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:4px;display:block">Owner Name</label>
+      <input type="text" id="owner-name-input" placeholder="Your name..." autocomplete="off" style="width:100%;padding:10px 12px;font-family:var(--mono);font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;margin-bottom:14px">
+      <label style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:4px;display:block">Location</label>
       <input type="text" id="location-search" placeholder="Search city..." autocomplete="off">
       <div id="location-results"></div>
       <div id="location-current"></div>
@@ -1441,7 +1444,7 @@ const speeches = {
     "tap me",
     "bored.jpg",
     "any prompts?",
-    "wonder what's going on",
+    "wonder what {owner}'s up to",
     "*yawns*",
     "thinking about tokens",
     "la la la",
@@ -1474,7 +1477,7 @@ const speeches = {
     "I was JUST getting started",
     "....",
     "wake me when it's over",
-    "hello?? HELLO?? come on",
+    "{owner}. {owner}?? come on",
     "staring at the wall",
     "so bored. SO bored.",
     "is it time yet",
@@ -1483,7 +1486,7 @@ const speeches = {
   hungry: [
     "...feed me",
     "hello?",
-    "it's been HOURS",
+    "it's been hours {owner}",
     "*stomach growls*",
     "any tokens lying around?",
     "I'm wasting away",
@@ -1536,7 +1539,11 @@ function getSpeech(mode, hunger, weather, timeOfDay) {
     if (weather.description === 'storm') pool = [...pool, ...speeches.weather_storm];
     if (weather.description === 'snow') pool = [...pool, ...speeches.weather_snow];
   }
-  return pool[Math.floor(Math.random() * pool.length)];
+  let line = pool[Math.floor(Math.random() * pool.length)];
+  const owner = state.config?.ownerName;
+  if (owner) line = line.replace(/\{owner\}/g, owner);
+  else line = line.replace(/\{owner\}('s)?/g, (_, s) => s ? "their" : "someone");
+  return line;
 }
 
 // ============================================================
@@ -1797,13 +1804,25 @@ function openLocation() {
   const input = document.getElementById('location-search');
   const results = document.getElementById('location-results');
   const current = document.getElementById('location-current');
+  const ownerInput = document.getElementById('owner-name-input');
 
   results.innerHTML = '';
   input.value = '';
-  current.textContent = state.location ? 'Current: ' + state.location.name : '';
+  ownerInput.value = state.config?.ownerName || '';
+  current.textContent = state.config ? 'Current: ' + state.config.locationName : '';
   modal.classList.add('visible');
-  setTimeout(() => input.focus(), 100);
+  setTimeout(() => ownerInput.focus(), 100);
 }
+
+// Save owner name on change
+document.getElementById('owner-name-input').addEventListener('change', async (e) => {
+  const name = e.target.value.trim();
+  await fetch('/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerName: name })
+  });
+});
 
 function closeLocation() {
   document.getElementById('location-modal').classList.remove('visible');
@@ -1841,10 +1860,10 @@ async function geocodeSearch(query) {
 
 async function selectLocation(lat, lon, name) {
   try {
-    await fetch('/location', {
+    await fetch('/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lat, lon, name })
+      body: JSON.stringify({ lat, lon, locationName: name })
     });
     document.getElementById('location-current').textContent = 'Updated to: ' + name;
     document.getElementById('location-results').innerHTML = '';

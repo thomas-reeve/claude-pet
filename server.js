@@ -72,31 +72,34 @@ function getTimeOfDay() {
 }
 
 // --- Weather (Open-Meteo, no API key needed) ---
-// Weather location — persisted, configurable via UI or env vars
-const LOCATION_FILE = path.join(__dirname, '.claude-pet-location.json');
+// Config — persisted, configurable via UI
+const CONFIG_FILE = path.join(__dirname, '.claude-pet-config.json');
 
-function loadLocation() {
+const defaultConfig = {
+  lat: parseFloat(process.env.LAT) || 52.2368,
+  lon: parseFloat(process.env.LON) || -0.8957,
+  locationName: process.env.LOCATION_NAME || 'Northampton, UK',
+  ownerName: process.env.OWNER_NAME || ''
+};
+
+function loadConfig() {
   try {
-    return JSON.parse(fs.readFileSync(LOCATION_FILE, 'utf8'));
+    return { ...defaultConfig, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
   } catch {
-    return {
-      lat: parseFloat(process.env.LAT) || 52.2368,
-      lon: parseFloat(process.env.LON) || -0.8957,
-      name: process.env.LOCATION_NAME || 'Northampton, UK'
-    };
+    return { ...defaultConfig };
   }
 }
 
-function saveLocation(loc) {
-  fs.writeFileSync(LOCATION_FILE, JSON.stringify(loc, null, 2));
+function saveConfig() {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(petConfig, null, 2));
 }
 
-let location = loadLocation();
+let petConfig = loadConfig();
 
 async function fetchWeather() {
   try {
     const fetch = (await import('node-fetch')).default;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&hourly=temperature_2m&forecast_days=1`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${petConfig.lat}&longitude=${petConfig.lon}&current_weather=true&hourly=temperature_2m&forecast_days=1`;
     const res = await fetch(url);
     const data = await res.json();
     const code = data.current_weather?.weathercode ?? 0;
@@ -148,7 +151,7 @@ setInterval(fetchWeather, 30 * 60 * 1000);
 
 // --- Broadcast ---
 function broadcast() {
-  const payload = JSON.stringify({ type: 'state', data: { ...claudeState, location } });
+  const payload = JSON.stringify({ type: 'state', data: { ...claudeState, config: petConfig } });
   wss.clients.forEach(client => {
     if (client.readyState === 1) client.send(payload);
   });
@@ -208,7 +211,7 @@ app.post('/status', requireAuth, (req, res) => {
 // GET /status — check current state
 app.get('/status', (req, res) => {
   claudeState.timeOfDay = getTimeOfDay();
-  res.json({ ...claudeState, location });
+  res.json({ ...claudeState, config: petConfig });
 });
 
 // GET /feed — manually feed tokens (for testing)
@@ -237,21 +240,29 @@ app.get('/feed', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /location — current location
-app.get('/location', (req, res) => {
-  res.json(location);
+// GET /config — current config
+app.get('/config', (req, res) => {
+  res.json(petConfig);
 });
 
-// POST /location — update location
-app.post('/location', (req, res) => {
-  const { lat, lon, name } = req.body;
-  if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return res.status(400).json({ error: 'invalid coordinates' });
+// POST /config — update config
+app.post('/config', (req, res) => {
+  const { lat, lon, locationName, ownerName } = req.body;
+  if (lat !== undefined && lon !== undefined) {
+    if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({ error: 'invalid coordinates' });
+    }
+    petConfig.lat = lat;
+    petConfig.lon = lon;
+    if (locationName) petConfig.locationName = String(locationName).slice(0, 100);
+    fetchWeather();
   }
-  location = { lat, lon, name: String(name || '').slice(0, 100) };
-  saveLocation(location);
-  fetchWeather();
-  res.json({ ok: true, location });
+  if (ownerName !== undefined) {
+    petConfig.ownerName = String(ownerName).slice(0, 50);
+  }
+  saveConfig();
+  broadcast();
+  res.json({ ok: true, config: petConfig });
 });
 
 const PORT = process.env.PORT || 3950;
