@@ -2,7 +2,7 @@
 
 A living desktop companion that reacts to your Claude Code and Cowork activity. It eats tokens, reacts to real weather, changes with the time of day, and talks in Animal Crossing bleeps.
 
-<!-- Add a demo.gif here to show Claude Pet in action -->
+![Claude Pet demo](demo.gif)
 
 ## Features
 
