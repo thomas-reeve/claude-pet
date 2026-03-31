@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Pet</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='24' rx='4' fill='%23E8824A'/><rect x='9' y='10' width='5' height='6' rx='1' fill='%231a1008'/><rect x='18' y='10' width='5' height='6' rx='1' fill='%231a1008'/><rect x='10' y='21' width='4' height='3' rx='0' fill='%231a1008'/><rect x='18' y='21' width='4' height='3' rx='0' fill='%231a1008'/><rect x='13' y='23' width='6' height='2' fill='%231a1008'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=VT323&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0ece4;
+    --bg2: #e8e2d8;
+    --surface: #fffdf9;
+    --border: #d4cfc6;
+    --text: #2a2520;
+    --text2: #7a746e;
+    --accent: #e07b3a;
+    --accent2: #5a8f6b;
+    --pixel: 'Pixelify Sans', monospace;
+    --mono: 'DM Mono', monospace;
+    --vt: 'VT323', monospace;
+    --sky-top: #87CEEB;
+    --sky-bot: #c8e8f5;
+    --sun-color: #FFD700;
+    --cloud: rgba(255,255,255,0.85);
+    --rain-color: #7ab0cc;
+    --transition-speed: 2s;
+  }
+
+  /* TIME OF DAY THEMES */
+  [data-time="dawn"] {
+    --sky-top: #ff9a7a;
+    --sky-bot: #ffd4a8;
+    --sun-color: #FF8C00;
+    --bg: #fdf0e8;
+    --bg2: #f5e4d4;
+    --surface: #fffaf6;
+    --border: #e0d4c4;
+    --text: #2a2218;
+  }
+  [data-time="day"] {
+    --sky-top: #87CEEB;
+    --sky-bot: #c8e8f5;
+    --sun-color: #FFD700;
+    --bg: #f0ece4;
+    --bg2: #e8e2d8;
+    --surface: #fffdf9;
+    --border: #d4cfc6;
+    --text: #2a2520;
+  }
+  [data-time="dusk"] {
+    --sky-top: #7b3f8c;
+    --sky-bot: #e8924a;
+    --sun-color: #FF6347;
+    --bg: #f0e4ec;
+    --bg2: #e4d4e0;
+    --surface: #fdf8fb;
+    --border: #d0c4cc;
+    --text: #221828;
+  }
+  [data-time="night"] {
+    --sky-top: #0a0e1a;
+    --sky-bot: #1a2040;
+    --sun-color: #E8E8F0;
+    --bg: #12151e;
+    --bg2: #1a1e2a;
+    --surface: #1e2230;
+    --border: #2a3050;
+    --text: #d8dce8;
+    --text2: #8890a8;
+    --cloud: rgba(80,90,120,0.6);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--pixel);
+    overflow: hidden;
+    transition: background var(--transition-speed), color var(--transition-speed);
+  }
+
+  /* SCENE */
+  #scene {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* SKY */
+  #sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%);
+    transition: background var(--transition-speed);
+    z-index: 0;
+  }
+
+  /* STARS (night only) */
+  #stars {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 2s;
+    pointer-events: none;
+  }
+  [data-time="night"] #stars { opacity: 1; }
+
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--tw-dur, 3s) ease-in-out infinite;
+    animation-delay: var(--tw-del, 0s);
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+
+  /* CELESTIAL BODY (sun/moon) */
+  #celestial {
+    position: absolute;
+    z-index: 2;
+    transition: all var(--transition-speed);
+  }
+  #celestial-inner {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--sun-color);
+    box-shadow: 0 0 30px var(--sun-color), 0 0 60px var(--sun-color)44;
+    transition: background var(--transition-speed), box-shadow var(--transition-speed);
+    position: relative;
+  }
+  [data-time="night"] #celestial-inner {
+    background: #E8E8F0;
+    box-shadow: 0 0 20px #E8E8F088, 0 0 40px #C0C0D044;
+  }
+  /* Moon craters */
+  #celestial-inner::before, #celestial-inner::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.08);
+    opacity: 0;
+    transition: opacity 1s;
+  }
+  [data-time="night"] #celestial-inner::before { opacity: 1; width: 14px; height: 14px; top: 12px; left: 16px; }
+  [data-time="night"] #celestial-inner::after { opacity: 1; width: 8px; height: 8px; top: 26px; left: 30px; }
+
+  /* CLOUDS */
+  #clouds {
+    position: absolute;
+    top: 8%;
+    width: 100%;
+    height: 120px;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .cloud {
+    position: absolute;
+    background: var(--cloud);
+    border-radius: 50px;
+    transition: background var(--transition-speed);
+    animation: drift linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+  }
+  @keyframes drift {
+    from { transform: translateX(-200px); }
+    to { transform: translateX(calc(100vw + 200px)); }
+  }
+
+  /* FLOOR LINE */
+  #floor {
+    position: absolute;
+    bottom: 40px;
+    left: 0; right: 0;
+    height: 2px;
+    background: rgba(0,0,0,0.08);
+    z-index: 4;
+  }
+
+  /* RAIN */
+  #rain {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s;
+  }
+  .rain-drop {
+    position: absolute;
+    top: -20px;
+    width: 1.5px;
+    background: linear-gradient(180deg, transparent, var(--rain-color));
+    animation: fall linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) translateX(-20px); }
+  }
+
+  /* SNOW */
+  #snow {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s;
+  }
+  .snowflake {
+    position: absolute;
+    top: -10px;
+    color: white;
+    font-size: 12px;
+    animation: snowfall linear infinite;
+    opacity: 0.8;
+  }
+  @keyframes snowfall {
+    to { transform: translateY(110vh) translateX(30px) rotate(360deg); }
+  }
+
+  /* LIGHTNING */
+  #lightning {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    background: rgba(255,255,200,0);
+    transition: background 0.05s;
+  }
+
+  /* THE ROOM / DESK AREA */
+  #room {
+    position: absolute;
+    bottom: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* DESK */
+  #desk {
+    width: 280px;
+    height: 16px;
+    background: #8B6914;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    box-shadow: 0 4px 0 #5c4410, 0 8px 20px rgba(0,0,0,0.2);
+    z-index: 12;
+  }
+  #desk::before {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 20px;
+    width: 12px; height: 40px;
+    background: #5c4410;
+    border-radius: 0 0 4px 4px;
+  }
+  #desk::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; right: 20px;
+    width: 12px; height: 40px;
+    background: #5c4410;
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* DESK ITEMS */
+  #desk-items {
+    position: absolute;
+    top: -50px;
+    width: 280px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 12px;
+    gap: 8px;
+    z-index: 11;
+  }
+
+  /* Monitor on desk */
+  .monitor {
+    width: 60px;
+    height: 44px;
+    background: #222;
+    border-radius: 4px;
+    border: 2px solid #444;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .monitor::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 6px;
+    background: #333;
+  }
+  .monitor-screen {
+    width: 52px;
+    height: 36px;
+    background: #0a1628;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .monitor-code {
+    position: absolute;
+    inset: 2px;
+    font-family: var(--mono);
+    font-size: 4px;
+    line-height: 6px;
+    color: #00ff88;
+    animation: scroll-code 4s linear infinite;
+    white-space: pre;
+  }
+  @keyframes scroll-code {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+
+  /* Coffee mug */
+  .mug {
+    width: 18px;
+    height: 16px;
+    background: #c8844a;
+    border-radius: 2px 2px 4px 4px;
+    position: relative;
+    border: 1.5px solid #a06030;
+  }
+  .mug::before {
+    content: '';
+    position: absolute;
+    right: -6px; top: 3px;
+    width: 5px; height: 8px;
+    border: 1.5px solid #a06030;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+  }
+  .steam {
+    position: absolute;
+    top: -10px;
+    left: 3px;
+    display: flex;
+    gap: 3px;
+  }
+  .steam span {
+    display: block;
+    width: 2px;
+    height: 8px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 2px;
+    animation: steam-rise 1.5s ease-in-out infinite;
+  }
+  .steam span:nth-child(2) { animation-delay: 0.5s; }
+  .steam span:nth-child(3) { animation-delay: 1s; }
+  @keyframes steam-rise {
+    0% { transform: translateY(0) scaleX(1); opacity: 0.5; }
+    100% { transform: translateY(-8px) scaleX(1.5); opacity: 0; }
+  }
+
+  /* FOOD BOWL */
+  #food-bowl {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .bowl {
+    width: 48px;
+    height: 20px;
+    background: #d4a84b;
+    border-radius: 0 0 24px 24px;
+    border: 2px solid #b88830;
+    position: relative;
+    overflow: hidden;
+  }
+  .bowl-fill {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    background: #ff8c42;
+    border-radius: 0 0 22px 22px;
+    transition: height 0.5s;
+  }
+  .bowl-label {
+    font-family: var(--pixel);
+    font-size: 8px;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+  }
+
+  /* CLAUDE CHARACTER — blocky robot */
+  #claude {
+    position: absolute;
+    bottom: 46px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  #claude-body {
+    position: relative;
+    width: 160px;
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: body-float 3s ease-in-out infinite;
+  }
+  @keyframes body-float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* MAIN BLOCK */
+  .c-block {
+    width: 140px;
+    height: 140px;
+    background: #E8824A;
+    border-radius: 10px;
+    position: relative;
+    box-shadow:
+      inset -10px -10px 0 #C05A28,
+      inset 10px 10px 0 #F0A870,
+      0 12px 0 #9A3E10,
+      0 18px 30px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+  }
+
+  /* FACE SCREEN */
+  .c-screen {
+    position: absolute;
+    top: 20px; left: 18px;
+    width: 104px; height: 90px;
+    background: #CC6830;
+    border-radius: 5px;
+    box-shadow: inset 3px 3px 6px rgba(0,0,0,0.4), inset -1px -1px 3px rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    overflow: hidden;
+  }
+
+  /* PIXEL EYES */
+  .c-eyes {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .c-eye {
+    width: 18px;
+    height: 20px;
+    background: #1a1008;
+    border-radius: 2px;
+    position: relative;
+    animation: blink 5s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 88%, 100% { transform: scaleY(1); }
+    93% { transform: scaleY(0.08); }
+  }
+
+  /* PIXEL MOUTH */
+  .c-mouth {
+    width: 42px;
+    height: 10px;
+    position: relative;
+  }
+  .c-mouth::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 10px; height: 10px;
+    background: #1a1008;
+    border-radius: 0 0 0 2px;
+  }
+  .c-mouth::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 10px; height: 10px;
+    background: #1a1008;
+    border-radius: 0 0 2px 0;
+  }
+  .c-mouth-mid {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 5px;
+    background: #1a1008;
+  }
+
+  /* EAR NUBS */
+  .c-block::before {
+    content: '';
+    position: absolute;
+    top: 34px; left: -10px;
+    width: 10px; height: 22px;
+    background: #D06838;
+    border-radius: 5px 0 0 5px;
+    box-shadow: inset -3px 0 4px rgba(0,0,0,0.3);
+  }
+  .c-block::after {
+    content: '';
+    position: absolute;
+    top: 34px; right: -10px;
+    width: 10px; height: 22px;
+    background: #D06838;
+    border-radius: 0 5px 5px 0;
+    box-shadow: inset 3px 0 4px rgba(0,0,0,0.3);
+  }
+
+  /* LEGS — four stubby block legs */
+  .c-legs {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    top: -3px;
+  }
+  .c-leg {
+    width: 28px;
+    height: 32px;
+    background: #D06838;
+    border-radius: 3px 3px 6px 6px;
+    box-shadow: 0 6px 0 #8A3A10, inset -4px -4px 0 #B85228;
+    animation: leg-waddle 0.9s ease-in-out infinite alternate;
+  }
+  .c-leg:nth-child(1) { animation-delay: 0s; }
+  .c-leg:nth-child(2) { animation-delay: 0.225s; }
+  .c-leg:nth-child(3) { animation-delay: 0.45s; }
+  .c-leg:nth-child(4) { animation-delay: 0.675s; }
+  @keyframes leg-waddle {
+    from { transform: translateY(0px); }
+    to   { transform: translateY(5px); }
+  }
+
+  /* SUNGLASSES */
+  .c-sunglasses {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  .c-sg-lens {
+    width: 28px; height: 18px;
+    background: rgba(20,10,0,0.75);
+    border-radius: 3px;
+    border: 2px solid #1a1008;
+  }
+  .c-sg-bridge {
+    width: 10px; height: 3px;
+    background: #1a1008;
+    margin-top: -8px;
+  }
+
+  /* UMBRELLA */
+  .c-umbrella {
+    position: absolute;
+    top: -52px;
+    right: -40px;
+    font-size: 48px;
+    opacity: 0;
+    transition: opacity 0.5s;
+    animation: umbrella-sway 2s ease-in-out infinite;
+  }
+  @keyframes umbrella-sway {
+    0%,100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+  }
+
+  /* ZZZ */
+  .c-zzz {
+    position: absolute;
+    top: -10px;
+    right: -50px;
+    font-family: var(--pixel);
+    font-size: 22px;
+    color: #8899cc;
+    opacity: 0;
+    animation: float-up 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .c-zzz:nth-child(2) { animation-delay: 1s; font-size: 15px; right: -32px; top: -4px; }
+  .c-zzz:nth-child(3) { animation-delay: 2s; font-size: 10px; right: -14px; top: 0px; }
+  @keyframes float-up {
+    0% { transform: translateY(0); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
+  }
+
+  /* CRASH STARS */
+  .c-stars {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .c-star {
+    font-size: 18px;
+    animation: spin-star 1s linear infinite;
+  }
+  .c-star:nth-child(2) { animation-delay: 0.33s; }
+  .c-star:nth-child(3) { animation-delay: 0.66s; }
+  @keyframes spin-star {
+    0% { transform: rotate(0) translateY(0); }
+    50% { transform: rotate(180deg) translateY(-8px); }
+    100% { transform: rotate(360deg) translateY(0); }
+  }
+
+  /* WORKING */
+  #claude.working .c-screen {
+    animation: screen-flicker 0.15s ease-in-out infinite alternate;
+  }
+  @keyframes screen-flicker {
+    from { background: #CC6830; }
+    to   { background: #D47040; }
+  }
+  #claude.working .c-leg { animation-duration: 0.25s; }
+  #claude.working #claude-body {
+    animation: body-work 0.4s ease-in-out infinite;
+  }
+  @keyframes body-work {
+    0%,100% { transform: translateY(0) rotate(-0.5deg); }
+    50%     { transform: translateY(-3px) rotate(0.5deg); }
+  }
+
+  /* SLEEPING */
+  #claude.sleeping .c-eye {
+    transform: scaleY(0.08) !important;
+    animation: none;
+  }
+  #claude.sleeping .c-leg { animation: none; transform: translateY(5px); }
+  #claude.sleeping #claude-body { animation: sleep-sway 6s ease-in-out infinite; }
+  @keyframes sleep-sway {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(3px) rotate(2deg); }
+  }
+  #claude.sleeping .c-mouth::before,
+  #claude.sleeping .c-mouth::after,
+  #claude.sleeping .c-mouth-mid {
+    bottom: auto; top: 6px;
+  }
+
+  /* RATE LIMITED */
+  #claude.rate_limited #claude-body {
+    animation: slump 0.3s ease-out forwards, slump-idle 4s ease-in-out 0.4s infinite;
+  }
+  @keyframes slump {
+    to { transform: translateY(10px) rotate(2deg); }
+  }
+  @keyframes slump-idle {
+    0%,100% { transform: translateY(10px) rotate(2deg); }
+    50%     { transform: translateY(12px) rotate(3deg); }
+  }
+  #claude.rate_limited .c-screen { filter: grayscale(0.6) brightness(0.7); }
+
+  /* HUNGER STATES */
+  #claude.hungry .c-block {
+    filter: saturate(0.7) brightness(0.95);
+  }
+  #claude.hungry #claude-body {
+    animation: body-float 5s ease-in-out infinite; /* slower float */
+  }
+  #claude.hungry .c-leg {
+    animation-duration: 1.8s;
+  }
+  #claude.hungry .c-mouth::before,
+  #claude.hungry .c-mouth::after {
+    bottom: auto; top: 6px; /* frown */
+  }
+  #claude.hungry .c-mouth-mid {
+    bottom: auto; top: 8px;
+  }
+
+  #claude.starving .c-block {
+    filter: saturate(0.4) brightness(0.85);
+  }
+  #claude.starving #claude-body {
+    animation: body-float 8s ease-in-out infinite; /* very slow */
+  }
+  #claude.starving .c-leg {
+    animation-duration: 3s;
+  }
+  #claude.starving .c-eye {
+    transform: scaleY(0.6); /* droopy eyes */
+  }
+  #claude.starving .c-mouth::before,
+  #claude.starving .c-mouth::after {
+    bottom: auto; top: 6px;
+  }
+  #claude.starving .c-mouth-mid {
+    bottom: auto; top: 8px;
+  }
+
+  /* EATING ANIMATION */
+  .food-particle {
+    position: absolute;
+    font-size: 16px;
+    pointer-events: none;
+    animation: eat-float 1s ease-out forwards;
+  }
+  @keyframes eat-float {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx, 20px), -60px) scale(0.3); opacity: 0; }
+  }
+
+  /* RATE LIMITED WALL */
+  #rate-wall {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 60%;
+    background: rgba(80,80,120,0.15);
+    backdrop-filter: blur(4px);
+    border-left: 3px dashed rgba(100,100,180,0.4);
+    z-index: 8;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #rate-wall.visible { opacity: 1; }
+
+  /* SPEECH BUBBLE */
+  #speech-bubble {
+    position: absolute;
+    bottom: 200px;
+    left: 50%;
+    transform: translateX(-40%);
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px 12px 12px 4px;
+    padding: 8px 14px;
+    font-family: var(--pixel);
+    font-size: 14px;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 30;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateX(-40%) translateY(4px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    max-width: 240px;
+    white-space: normal;
+    text-align: left;
+  }
+  #speech-bubble.visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-40%) translateY(0);
+  }
+  #speech-bubble::after {
+    content: '🔊';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    opacity: 0.5;
+  }
+  #speech-bubble.playing::after { content: '🔈'; opacity: 1; }
+
+  /* HUD */
+  #hud {
+    display: none;
+  }
+  .hud-card { display: none; }
+  .hud-title { display: none; }
+  .hud-value { display: none; }
+  .hud-sub { display: none; }
+
+  /* HUNGER BAR */
+  .hunger-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .hunger-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.5s;
+  }
+
+  /* STATUS BADGE — hidden, merged into nameplate */
+  #status-badge { display: none; }
+  .badge { display: none; }
+
+  /* MEAL LOG — hidden, replaced by terminal modal */
+  #meal-log { display: none; }
+
+  /* TERMINAL MODAL */
+  #terminal-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #terminal-modal.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #terminal-window {
+    width: 380px;
+    max-width: 90vw;
+    max-height: 70vh;
+    background: #0a1628;
+    border: 2px solid #334;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: scale(0.9) translateY(10px);
+    transition: transform 0.3s;
+  }
+  #terminal-modal.visible #terminal-window {
+    transform: scale(1) translateY(0);
+  }
+  #terminal-titlebar {
+    background: #1a2440;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #terminal-titlebar .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #ff5f56; }
+  #terminal-titlebar .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #ffbd2e; }
+  #terminal-titlebar .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #27c93f; }
+  #terminal-titlebar span {
+    flex: 1;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #667;
+  }
+  #terminal-body {
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: #00ff88;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  #terminal-body .t-prompt { color: #5588cc; }
+  #terminal-body .t-dim { color: #445566; }
+  #terminal-body .t-accent { color: #e07b3a; }
+  #terminal-body .t-warn { color: #cc5566; }
+  #terminal-body .t-line {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  /* Terminal scrollbar */
+  #terminal-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  #terminal-body::-webkit-scrollbar-track {
+    background: #0d1a2e;
+    border-radius: 3px;
+  }
+  #terminal-body::-webkit-scrollbar-thumb {
+    background: #2a3a55;
+    border-radius: 3px;
+  }
+  #terminal-body::-webkit-scrollbar-thumb:hover {
+    background: #3a4a65;
+  }
+
+  /* Make monitor clickable */
+  .monitor { cursor: pointer; transition: filter 0.2s; }
+  .monitor:hover { filter: brightness(1.3); }
+
+  /* WEATHER BADGE */
+  #weather-badge {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 40;
+    font-family: var(--pixel);
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 1s, border-color 1s;
+  }
+
+  /* RATE LIMIT COUNTDOWN */
+  #countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  #countdown.visible { opacity: 1; }
+  #countdown-label {
+    font-family: var(--pixel);
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  #countdown-time {
+    font-family: var(--vt);
+    font-size: 48px;
+    color: #cc5566;
+    line-height: 1;
+  }
+
+  /* TASK TICKER */
+  /* TASK TICKER — hidden, merged into nameplate */
+  #task-ticker { display: none; }
+  #task-text { display: none; }
+
+  /* NAMEPLATE — unified status near the character */
+  #nameplate {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 35;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(8px);
+    transition: background 1s, border-color 1s;
+    white-space: nowrap;
+  }
+  #nameplate .np-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.7; }
+  }
+  #nameplate .np-label {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  #nameplate .np-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  #nameplate .np-tokens {
+    font-family: var(--vt);
+    font-size: 13px;
+    color: var(--text);
+  }
+  #nameplate .np-task {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text2);
+    font-style: italic;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .np-hunger {
+    width: 40px;
+    height: 5px;
+    background: var(--bg2);
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .np-hunger-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s;
+  }
+  /* Nameplate state colors */
+  #nameplate[data-state="idle"] .np-dot { background: var(--text2); animation: none; }
+  #nameplate[data-state="idle"] .np-label { color: var(--text2); }
+  #nameplate[data-state="working"] .np-dot { background: #e07b3a; }
+  #nameplate[data-state="working"] .np-label { color: #e07b3a; }
+  #nameplate[data-state="sleeping"] .np-dot { background: #8899cc; animation: none; }
+  #nameplate[data-state="sleeping"] .np-label { color: #8899cc; }
+  #nameplate[data-state="rate_limited"] .np-dot { background: #cc5566; }
+  #nameplate[data-state="rate_limited"] .np-label { color: #cc5566; }
+  @keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+
+  /* STATE ANIMATIONS — handled inline in character CSS block above */
+
+  /* CONFETTI (rate limit reset) */
+  .confetti-piece {
+    position: fixed;
+    width: 8px; height: 8px;
+    z-index: 100;
+    animation: confetti-fall 2s ease-in forwards;
+    pointer-events: none;
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* MOBILE RESPONSIVE */
+  @media (max-width: 600px) {
+    #claude-body {
+      transform: scale(0.7);
+      transform-origin: bottom center;
+    }
+    #room { transform: translateX(-50%) scale(0.7); transform-origin: bottom center; }
+    #food-bowl { transform: scale(0.7); transform-origin: bottom left; left: calc(50% - 160px); }
+    #nameplate {
+      top: 10px; left: 10px; right: 10px;
+      font-size: 9px;
+      padding: 6px 10px;
+      gap: 6px;
+    }
+    #nameplate .np-task { max-width: 80px; }
+    #weather-badge {
+      bottom: 10px; left: 10px;
+      font-size: 10px;
+      padding: 6px 10px;
+    }
+    #meal-log {
+      bottom: 10px; right: 10px;
+      max-width: 140px;
+    }
+    .meal-entry { font-size: 7px; padding: 3px 6px; }
+    #countdown-time { font-size: 32px; }
+    #speech-bubble {
+      font-size: 12px;
+      max-width: 180px;
+      bottom: 180px;
+    }
+    #comeback-text { font-size: 48px; }
+    #terminal-window { width: 95vw; }
+    #terminal-body { font-size: 10px; }
+  }
+
+  @media (max-width: 380px) {
+    #claude-body { transform: scale(0.55); }
+    #room { transform: translateX(-50%) scale(0.55); }
+    #food-bowl { display: none; }
+    #nameplate .np-task { display: none; }
+    #meal-log { display: none; }
+  }
+
+  /* COME BACK announcement */
+  #comeback {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+  }
+  #comeback-text {
+    font-family: var(--vt);
+    font-size: 80px;
+    color: var(--accent);
+    text-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+    letter-spacing: 4px;
+    animation: none;
+  }
+</style>
+</head>
+<body data-time="day">
+
+<div id="scene">
+  <!-- SKY LAYERS -->
+  <div id="sky"></div>
+  <div id="clouds"></div>
+  <div id="stars"></div>
+
+  <!-- RAIN -->
+  <div id="rain"></div>
+  <!-- SNOW -->
+  <div id="snow"></div>
+  <!-- LIGHTNING -->
+  <div id="lightning"></div>
+
+  <!-- FLOOR -->
+  <div id="floor"></div>
+
+  <!-- ROOM / DESK -->
+  <div id="room">
+    <div id="desk-items">
+      <div id="food-bowl">
+        <div class="bowl">
+          <div class="bowl-fill" id="bowl-fill" style="height:80%"></div>
+        </div>
+        <div class="bowl-label">TOKENS</div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="mug">
+        <div class="steam"><span></span><span></span><span></span></div>
+      </div>
+      <div class="monitor" onclick="openTerminal()">
+        <div class="monitor-screen">
+          <div class="monitor-code" id="monitor-code">const t=tokens
+eat(t)
+> nom nom
+feed(me)
+> ok
+run(task)
+> 2340tok
+sleep()
+> zzz
+wake()
+> ok!
+think()
+> ...
+const t=tokens
+eat(t)
+> nom nom</div>
+        </div>
+      </div>
+    </div>
+    <div id="desk"></div>
+  </div>
+
+  <!-- FOOD BOWL (moved to desk) -->
+
+  <!-- CLAUDE CHARACTER -->
+  <div id="claude" class="idle" onclick="triggerSpeech()">
+    <div id="claude-body">
+      <div class="c-block">
+        <div class="c-screen">
+          <div class="c-eyes">
+            <div class="c-eye"></div>
+            <div class="c-eye"></div>
+          </div>
+          <div class="c-mouth">
+            <div class="c-mouth-mid"></div>
+          </div>
+        </div>
+        <div class="c-sunglasses" id="c-sunglasses">
+          <div class="c-sg-lens"></div>
+          <div class="c-sg-bridge"></div>
+          <div class="c-sg-lens"></div>
+        </div>
+      </div>
+      <div class="c-legs">
+        <div class="c-leg"></div>
+        <div class="c-leg"></div>
+        <div class="c-leg"></div>
+        <div class="c-leg"></div>
+      </div>
+      <div class="c-umbrella" id="c-umbrella">☂️</div>
+      <div class="c-zzz" id="zzz1">Z</div>
+      <div class="c-zzz" id="zzz2">z</div>
+      <div class="c-zzz" id="zzz3">z</div>
+      <div class="c-stars" id="c-stars">
+        <span class="c-star">⭐</span>
+        <span class="c-star">✨</span>
+        <span class="c-star">⭐</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPEECH BUBBLE -->
+  <div id="speech-bubble" onclick="playSpeechSound(currentSpeech)">
+    <span id="speech-text"></span>
+  </div>
+
+  <!-- NAMEPLATE -->
+  <div id="nameplate" data-state="idle">
+    <div class="np-dot"></div>
+    <span class="np-label" id="np-label">IDLE</span>
+    <div class="np-sep"></div>
+    <span class="np-tokens" id="np-tokens">0</span>
+    <div class="np-hunger"><div class="np-hunger-fill" id="np-hunger-fill" style="width:80%; background:#5a8f6b"></div></div>
+    <span class="np-task" id="np-task">idle</span>
+  </div>
+
+  <!-- RATE WALL -->
+  <div id="rate-wall"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-card">
+      <div class="hud-title">Tokens Today</div>
+      <div class="hud-value" id="hud-today">0</div>
+      <div class="hunger-bar">
+        <div class="hunger-fill" id="hunger-fill" style="width:80%"></div>
+      </div>
+      <div class="hud-sub" id="hud-hunger">well fed</div>
+    </div>
+    <div class="hud-card" id="hud-session-card">
+      <div class="hud-title">Session</div>
+      <div class="hud-value" id="hud-session">0</div>
+      <div class="hud-sub" id="hud-task-display">idle</div>
+    </div>
+  </div>
+
+  <!-- STATUS BADGE -->
+  <div id="status-badge">
+    <div class="badge idle" id="badge">
+      <div class="dot"></div>
+      <span id="badge-label">IDLE</span>
+    </div>
+  </div>
+
+  <!-- WEATHER -->
+  <div id="weather-badge">
+    <span id="weather-icon">☀️</span>
+    <span id="weather-temp">--°C</span>
+  </div>
+
+  <!-- MEAL LOG (hidden) -->
+  <div id="meal-log"></div>
+
+  <!-- TERMINAL MODAL -->
+  <div id="terminal-modal" onclick="if(event.target===this)closeTerminal()">
+    <div id="terminal-window">
+      <div id="terminal-titlebar" onclick="closeTerminal()">
+        <div class="dot-r"></div>
+        <div class="dot-y"></div>
+        <div class="dot-g"></div>
+        <span>claude-pet — activity</span>
+      </div>
+      <div id="terminal-body"></div>
+    </div>
+  </div>
+
+  <!-- TASK TICKER -->
+  <div id="task-ticker">
+    <span id="task-text">loading...</span>
+  </div>
+
+  <!-- RATE LIMIT COUNTDOWN -->
+  <div id="countdown">
+    <div id="countdown-label">RESETS IN</div>
+    <div id="countdown-time">--:--:--</div>
+  </div>
+</div>
+
+<!-- COMEBACK OVERLAY -->
+<div id="comeback"><div id="comeback-text">I'M BACK</div></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  mode: 'idle',
+  task: null,
+  tokens: 0,
+  tokensToday: 0,
+  tokensSession: 0,
+  recentMeals: [],
+  rateLimitResetsAt: null,
+  hunger: 80,
+  weather: { code: 0, description: 'clear', temp: 15 },
+  timeOfDay: 'day'
+};
+
+let currentSpeech = '';
+let speechTimeout = null;
+let prevMode = null;
+let countdownInterval = null;
+
+// ============================================================
+// SPEECH LINES
+// ============================================================
+const speeches = {
+  idle: [
+    "...",
+    "tap me",
+    "bored.jpg",
+    "any prompts?",
+    "wonder what's going on",
+    "*yawns*",
+    "thinking about tokens",
+    "la la la",
+    "hello? anyone?",
+    "waiting...",
+    "tap for sound 🔊"
+  ],
+  working: [
+    "mmm tokens",
+    "ooh a juicy one",
+    "crunching...",
+    "nearly there",
+    "this one's chewy",
+    "NOM NOM NOM",
+    "delicious prompt",
+    "feeding time!",
+    "so many tokens...",
+    "*munching sounds*"
+  ],
+  sleeping: [
+    "...zzzz...",
+    "*snore*",
+    "dreaming of tokens",
+    "more prompts... zz",
+    "five more minutes",
+    "so tired...",
+  ],
+  rate_limited: [
+    "not fair",
+    "I was JUST getting started",
+    "....",
+    "wake me when it's over",
+    "hello?? HELLO?? come on",
+    "staring at the wall",
+    "so bored. SO bored.",
+    "is it time yet",
+    "I miss tokens",
+  ],
+  hungry: [
+    "...feed me",
+    "hello?",
+    "it's been HOURS",
+    "*stomach growls*",
+    "any tokens lying around?",
+    "I'm wasting away",
+  ],
+  dawn: [
+    "good morning!",
+    "*big stretch*",
+    "new day, new tokens",
+    "coffee first",
+    "ready to work!",
+  ],
+  dusk: [
+    "winding down...",
+    "long day of tokens",
+    "almost bedtime",
+    "*yawns dramatically*",
+  ],
+  weather_rain: [
+    "very wet out there",
+    "good day to stay in",
+    "pitter patter",
+  ],
+  weather_storm: [
+    "DRAMATIC",
+    "very moody out there",
+    "spooky ⚡",
+  ],
+  weather_snow: [
+    "SNOW?? really??",
+    "rare",
+    "❄️ beautiful",
+  ],
+  working_ate: [
+    "2,340 tokens? don't mind if I do",
+    "absolutely delicious",
+    "that was a good one",
+    "*satisfied burp*",
+    "belly full of tokens",
+    "NOM",
+  ]
+};
+
+function getSpeech(mode, hunger, weather, timeOfDay) {
+  let pool = [...(speeches[mode] || speeches.idle)];
+  if (hunger < 20) pool = [...pool, ...speeches.hungry];
+  if (mode === 'idle') {
+    if (timeOfDay === 'dawn') pool = [...pool, ...speeches.dawn];
+    if (timeOfDay === 'dusk') pool = [...pool, ...speeches.dusk];
+    if (weather.description === 'rain') pool = [...pool, ...speeches.weather_rain];
+    if (weather.description === 'storm') pool = [...pool, ...speeches.weather_storm];
+    if (weather.description === 'snow') pool = [...pool, ...speeches.weather_snow];
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ============================================================
+// ANIMAL CROSSING VOICE
+// ============================================================
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBleep(freq, duration, delay) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+  gain.gain.setValueAtTime(0.06, ctx.currentTime + delay);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+  osc.start(ctx.currentTime + delay);
+  osc.stop(ctx.currentTime + delay + duration + 0.01);
+}
+
+function playSpeechSound(text) {
+  if (!text) return;
+  const bubble = document.getElementById('speech-bubble');
+  bubble.classList.add('playing');
+  setTimeout(() => bubble.classList.remove('playing'), 2000);
+
+  const baseFreqs = [261, 294, 329, 349, 392, 440, 494, 523];
+  const chars = text.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 20);
+  let delay = 0;
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars.charCodeAt(i);
+    const freq = baseFreqs[c % baseFreqs.length] * (1 + (c % 3) * 0.1);
+    const jitter = 0.85 + Math.random() * 0.3;
+    playBleep(freq * jitter, 0.06, delay);
+    delay += chars[i] === ' ' ? 0.12 : 0.07;
+  }
+}
+
+// ============================================================
+// SPEECH BUBBLE
+// ============================================================
+function showSpeech(text) {
+  currentSpeech = text;
+  const el = document.getElementById('speech-bubble');
+  document.getElementById('speech-text').textContent = text;
+  el.classList.remove('visible');
+  void el.offsetWidth;
+  setTimeout(() => el.classList.add('visible'), 50);
+  if (speechTimeout) clearTimeout(speechTimeout);
+  speechTimeout = setTimeout(() => el.classList.remove('visible'), 8000);
+}
+
+function triggerSpeech() {
+  const text = getSpeech(state.mode, state.hunger, state.weather, state.timeOfDay);
+  showSpeech(text);
+  playSpeechSound(text);
+}
+
+// Auto-speech timer
+function scheduleNextSpeech() {
+  const delay = 30000 + Math.random() * 60000; // 30-90s
+  setTimeout(() => {
+    if (state.mode !== 'rate_limited') {
+      const text = getSpeech(state.mode, state.hunger, state.weather, state.timeOfDay);
+      showSpeech(text);
+    }
+    scheduleNextSpeech();
+  }, delay);
+}
+
+// ============================================================
+// WEATHER PARTICLES
+// ============================================================
+let rainDrops = [];
+let snowFlakes = [];
+
+function buildRain() {
+  const rain = document.getElementById('rain');
+  rain.innerHTML = '';
+  for (let i = 0; i < 60; i++) {
+    const d = document.createElement('div');
+    d.className = 'rain-drop';
+    d.style.left = Math.random() * 110 + '%';
+    d.style.height = (10 + Math.random() * 15) + 'px';
+    d.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+    d.style.animationDelay = (-Math.random() * 2) + 's';
+    rain.appendChild(d);
+  }
+}
+
+function buildSnow() {
+  const snow = document.getElementById('snow');
+  snow.innerHTML = '';
+  const flakes = ['❄', '❅', '❆', '·', '•'];
+  for (let i = 0; i < 30; i++) {
+    const d = document.createElement('div');
+    d.className = 'snowflake';
+    d.textContent = flakes[Math.floor(Math.random() * flakes.length)];
+    d.style.left = Math.random() * 100 + '%';
+    d.style.animationDuration = (3 + Math.random() * 4) + 's';
+    d.style.animationDelay = (-Math.random() * 6) + 's';
+    d.style.fontSize = (8 + Math.random() * 10) + 'px';
+    snow.appendChild(d);
+  }
+}
+
+function buildStars() {
+  const stars = document.getElementById('stars');
+  stars.innerHTML = '';
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 60 + '%';
+    s.style.setProperty('--tw-dur', (2 + Math.random() * 4) + 's');
+    s.style.setProperty('--tw-del', (-Math.random() * 4) + 's');
+    stars.appendChild(s);
+  }
+}
+
+function buildClouds() {
+  const clouds = document.getElementById('clouds');
+  clouds.innerHTML = '';
+  const count = 4;
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const w = 80 + Math.random() * 120;
+    const h = 30 + Math.random() * 20;
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
+    c.style.top = (Math.random() * 80) + 'px';
+    c.style.animationDuration = (30 + Math.random() * 40) + 's';
+    c.style.animationDelay = (-Math.random() * 40) + 's';
+    c.style.opacity = 0.7 + Math.random() * 0.3;
+    clouds.appendChild(c);
+  }
+}
+
+let lightningTimer;
+function startLightning() {
+  clearTimeout(lightningTimer);
+  const flash = () => {
+    const el = document.getElementById('lightning');
+    el.style.background = 'rgba(255,255,200,0.3)';
+    setTimeout(() => el.style.background = 'rgba(255,255,200,0)', 80);
+    setTimeout(() => {
+      el.style.background = 'rgba(255,255,200,0.2)';
+      setTimeout(() => el.style.background = 'rgba(255,255,200,0)', 60);
+    }, 120);
+    lightningTimer = setTimeout(flash, 4000 + Math.random() * 8000);
+  };
+  lightningTimer = setTimeout(flash, 2000);
+}
+
+function stopLightning() {
+  clearTimeout(lightningTimer);
+  document.getElementById('lightning').style.background = 'rgba(255,255,200,0)';
+}
+
+function applyWeather(weather) {
+  const rain = document.getElementById('rain');
+  const snow = document.getElementById('snow');
+  const umbrella = document.getElementById('c-umbrella');
+  const sunglasses = document.getElementById('c-sunglasses');
+
+  rain.style.opacity = '0';
+  snow.style.opacity = '0';
+  umbrella.style.opacity = '0';
+  sunglasses.style.opacity = '0';
+  stopLightning();
+
+  const desc = weather.description;
+  const icon = { clear:'☀️', cloudy:'⛅', rain:'🌧️', drizzle:'🌦️', storm:'⛈️', snow:'❄️', foggy:'🌫️' }[desc] || '🌤️';
+  document.getElementById('weather-icon').textContent = icon;
+  document.getElementById('weather-temp').textContent = weather.temp + '°C';
+
+  if (desc === 'rain' || desc === 'drizzle') {
+    buildRain();
+    rain.style.opacity = '1';
+    umbrella.style.opacity = '1';
+  } else if (desc === 'storm') {
+    buildRain();
+    rain.style.opacity = '1';
+    umbrella.style.opacity = '1';
+    startLightning();
+  } else if (desc === 'snow') {
+    buildSnow();
+    snow.style.opacity = '1';
+  } else if (desc === 'clear' && state.timeOfDay === 'day') {
+    sunglasses.style.opacity = '1';
+  }
+}
+
+// ============================================================
+// CELESTIAL BODY POSITION
+// ============================================================
+function updateCelestial(timeOfDay) {
+  const cel = document.getElementById('celestial');
+  const vw = window.innerWidth;
+  const positions = {
+    dawn: { x: vw * 0.15, y: window.innerHeight * 0.35 },
+    day:  { x: vw * 0.5,  y: window.innerHeight * 0.1 },
+    dusk: { x: vw * 0.82, y: window.innerHeight * 0.3 },
+    night:{ x: vw * 0.75, y: window.innerHeight * 0.12 }
+  };
+  const pos = positions[timeOfDay] || positions.day;
+  if (!cel) {
+    // Create it
+    const div = document.createElement('div');
+    div.id = 'celestial';
+    div.innerHTML = '<div id="celestial-inner"></div>';
+    div.style.left = pos.x + 'px';
+    div.style.top = pos.y + 'px';
+    document.getElementById('sky').after(div);
+  } else {
+    cel.style.left = pos.x + 'px';
+    cel.style.top = pos.y + 'px';
+  }
+}
+
+// ============================================================
+// FOOD PARTICLE ANIMATION
+// ============================================================
+const foodEmojis = {
+  'inbox': '📧', 'email': '📧', 'code': '💻', 'summary': '📜',
+  'research': '🔬', 'write': '✏️', 'task': '🍪', 'default': '🍪',
+  'analyse': '📊', 'file': '📁', 'search': '🔍'
+};
+
+function spawnFoodParticle(task) {
+  const claude = document.getElementById('claude');
+  const rect = claude.getBoundingClientRect();
+  const emoji = Object.entries(foodEmojis).find(([k]) => task?.toLowerCase().includes(k))?.[1] || '🍪';
+  const p = document.createElement('div');
+  p.className = 'food-particle';
+  p.textContent = emoji;
+  p.style.left = (rect.left + rect.width / 2 - 10) + 'px';
+  p.style.top = (rect.top) + 'px';
+  p.style.setProperty('--tx', (Math.random() * 60 - 30) + 'px');
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1200);
+}
+
+// ============================================================
+// TERMINAL MODAL
+// ============================================================
+function openTerminal() {
+  const modal = document.getElementById('terminal-modal');
+  const body = document.getElementById('terminal-body');
+  let html = '<div class="t-line"><span class="t-prompt">$</span> claude-pet --status</div>';
+
+  // Current status
+  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED' };
+  const stateColor = state.mode === 'working' ? 't-accent' : state.mode === 'rate_limited' ? 't-warn' : '';
+  html += `<div class="t-line"><span class="${stateColor}">[${labels[state.mode] || 'IDLE'}]</span> ${state.task || 'no active task'}</div>`;
+  html += `<div class="t-line"><span class="t-dim">hunger:</span> ${Math.round(state.hunger)}%  <span class="t-dim">tokens today:</span> ${formatTokens(state.tokensToday)}</div>`;
+  html += '<div class="t-line">&nbsp;</div>';
+
+  // Recent meals
+  html += '<div class="t-line"><span class="t-prompt">$</span> claude-pet --history</div>';
+  if (state.recentMeals.length === 0) {
+    html += '<div class="t-line"><span class="t-dim">no recent activity</span></div>';
+  } else {
+    state.recentMeals.forEach(meal => {
+      const ago = timeAgo(meal.time);
+      html += `<div class="t-line"><span class="t-dim">${ago}</span>  <span class="t-accent">${meal.task}</span>  <span class="t-dim">${formatTokens(meal.tokens)} tok</span></div>`;
+    });
+  }
+
+  html += '<div class="t-line">&nbsp;</div>';
+  html += '<div class="t-line"><span class="t-dim">click anywhere to close</span></div>';
+
+  body.innerHTML = html;
+  modal.classList.add('visible');
+}
+
+function closeTerminal() {
+  document.getElementById('terminal-modal').classList.remove('visible');
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTerminal();
+});
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function launchConfetti() {
+  const colors = ['#e07b3a', '#5580c8', '#5a8f6b', '#cc5566', '#f5c84a', '#aa55cc'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    c.style.animationDelay = Math.random() * 0.5 + 's';
+    c.style.animationDuration = (1.5 + Math.random()) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2500);
+  }
+}
+
+function showComeback() {
+  const el = document.getElementById('comeback');
+  const text = document.getElementById('comeback-text');
+  el.style.opacity = '1';
+  text.style.animation = 'none';
+  void text.offsetWidth;
+  setTimeout(() => { el.style.opacity = '0'; }, 2500);
+}
+
+// ============================================================
+// RENDER STATE
+// ============================================================
+function render(s) {
+  const body = document.body;
+  const claude = document.getElementById('claude');
+
+  // TIME OF DAY
+  body.setAttribute('data-time', s.timeOfDay);
+  updateCelestial(s.timeOfDay);
+
+  // WEATHER
+  applyWeather(s.weather);
+
+  // CHARACTER CLASS — mode + hunger state
+  let classes = s.mode;
+  if (s.mode !== 'sleeping' && s.mode !== 'rate_limited') {
+    if (s.hunger <= 20) classes += ' starving';
+    else if (s.hunger <= 40) classes += ' hungry';
+  }
+  claude.className = classes;
+
+  // ZZZ visibility
+  const zzzVisible = s.mode === 'sleeping';
+  ['zzz1','zzz2','zzz3'].forEach(id => {
+    document.getElementById(id).style.opacity = zzzVisible ? '1' : '0';
+  });
+
+  // STARS (crash)
+  document.getElementById('c-stars').style.opacity = s.mode === 'rate_limited' ? '1' : '0';
+
+  // RATE WALL
+  const wall = document.getElementById('rate-wall');
+  if (s.mode === 'rate_limited') {
+    wall.classList.add('visible');
+    document.getElementById('countdown').classList.add('visible');
+    startCountdown(s.rateLimitResetsAt);
+  } else {
+    wall.classList.remove('visible');
+    document.getElementById('countdown').classList.remove('visible');
+    if (countdownInterval) clearInterval(countdownInterval);
+  }
+
+  // BADGE
+  const badge = document.getElementById('badge');
+  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED' };
+  badge.className = 'badge ' + s.mode;
+  document.getElementById('badge-label').textContent = labels[s.mode] || 'IDLE';
+
+  // TASK TICKER
+  const ticker = document.getElementById('task-ticker');
+  if (s.mode === 'working' && s.task) {
+    ticker.classList.add('visible');
+    document.getElementById('task-text').textContent = `⚡ ${s.task} — consuming ${s.tokens?.toLocaleString() || '...'} tokens`;
+  } else {
+    ticker.classList.remove('visible');
+  }
+
+  // HUD (legacy — kept for compat)
+  document.getElementById('hud-today').textContent = formatTokens(s.tokensToday);
+  document.getElementById('hud-session').textContent = formatTokens(s.tokensSession);
+  document.getElementById('hud-task-display').textContent = s.task || (s.mode === 'sleeping' ? 'sleeping...' : 'idle');
+
+  // HUNGER
+  const hunger = Math.max(0, Math.min(100, s.hunger));
+  document.getElementById('hunger-fill').style.width = hunger + '%';
+  document.getElementById('hunger-fill').style.background = hunger > 60 ? '#5a8f6b' : hunger > 30 ? '#e07b3a' : '#cc5566';
+  document.getElementById('hud-hunger').textContent =
+    hunger > 80 ? 'well fed' : hunger > 50 ? 'peckish' : hunger > 20 ? 'hungry' : '😱 STARVING';
+
+  // NAMEPLATE
+  const np = document.getElementById('nameplate');
+  np.setAttribute('data-state', s.mode);
+  document.getElementById('np-label').textContent = labels[s.mode] || 'IDLE';
+  document.getElementById('np-tokens').textContent = formatTokens(s.tokensToday);
+  document.getElementById('np-task').textContent = s.task || (s.mode === 'sleeping' ? 'zzz...' : 'idle');
+  const hungerColor = hunger > 60 ? '#5a8f6b' : hunger > 30 ? '#e07b3a' : '#cc5566';
+  document.getElementById('np-hunger-fill').style.width = hunger + '%';
+  document.getElementById('np-hunger-fill').style.background = hungerColor;
+
+  // BOWL FILL
+  document.getElementById('bowl-fill').style.height = hunger + '%';
+
+  // MEAL LOG
+  const mealLog = document.getElementById('meal-log');
+  mealLog.innerHTML = '';
+  s.recentMeals.forEach(meal => {
+    const el = document.createElement('div');
+    el.className = 'meal-entry';
+    el.textContent = `${meal.task} — ${formatTokens(meal.tokens)} tok`;
+    mealLog.appendChild(el);
+  });
+}
+
+function formatTokens(n) {
+  if (!n) return '0';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return n.toString();
+}
+
+// ============================================================
+// COUNTDOWN
+// ============================================================
+function startCountdown(resetsAt) {
+  if (countdownInterval) clearInterval(countdownInterval);
+  if (!resetsAt) return;
+
+  const update = () => {
+    const diff = new Date(resetsAt) - Date.now();
+    if (diff <= 0) {
+      document.getElementById('countdown-time').textContent = '00:00:00';
+      clearInterval(countdownInterval);
+      return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('countdown-time').textContent =
+      String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  };
+  update();
+  countdownInterval = setInterval(update, 1000);
+}
+
+// ============================================================
+// WEBSOCKET
+// ============================================================
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}`);
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'state') {
+      const prev = state.mode;
+      state = msg.data;
+
+      // TRANSITION EFFECTS
+      if (prev === 'working' && state.mode === 'idle' && state.recentMeals.length > 0) {
+        spawnFoodParticle(state.recentMeals[0]?.task);
+        setTimeout(() => {
+          showSpeech(speeches.working_ate[Math.floor(Math.random() * speeches.working_ate.length)]);
+        }, 500);
+      }
+
+      if (prev === 'rate_limited' && state.mode !== 'rate_limited') {
+        launchConfetti();
+        showComeback();
+        setTimeout(() => showSpeech("I'M BACK. RIGHT. where were we."), 1000);
+      }
+
+      if (prev !== 'working' && state.mode === 'working') {
+        showSpeech(speeches.working[Math.floor(Math.random() * speeches.working.length)]);
+        spawnFoodParticle(state.task);
+      }
+
+      if (prev !== 'sleeping' && state.mode === 'sleeping') {
+        showSpeech('...zzzz...');
+      }
+
+      if (prev !== state.timeOfDay) {
+        if (state.timeOfDay === 'dawn') showSpeech('*big stretch* good morning!');
+        if (state.timeOfDay === 'night') showSpeech('bedtime I think...');
+      }
+
+      render(state);
+    }
+  };
+
+  ws.onclose = () => { setTimeout(connect, 3000); };
+  ws.onerror = () => ws.close();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+buildStars();
+buildClouds();
+
+// Fetch initial state
+fetch('/status').then(r => r.json()).then(s => {
+  state = s;
+  try { render(state); } catch(e) { console.error('[render]', e); }
+}).catch(e => console.error('[fetch /status]', e));
+
+connect();
+scheduleNextSpeech();
+
+// Trigger intro speech after a moment
+setTimeout(() => {
+  showSpeech("hello! tap me to hear my voice 🔊");
+}, 2000);
+
+// Update time of day check every minute
+setInterval(() => {
+  const hours = new Date().getHours();
+  const newTod = hours >= 5 && hours < 8 ? 'dawn' :
+                 hours >= 8 && hours < 18 ? 'day' :
+                 hours >= 18 && hours < 21 ? 'dusk' : 'night';
+  if (newTod !== state.timeOfDay) {
+    state.timeOfDay = newTod;
+    render(state);
+  }
+}, 60000);
+
+console.log(`
+  🤖 Claude Pet
+  POST /status { state, task, tokens, resetsAt }
+  GET  /feed?tokens=2000&task=inbox
+  GET  /status
+`);
+</script>
+</body>
+</html>

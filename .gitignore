@@ -1,0 +1,5 @@
+node_modules/
+.claude-pet-state.json
+.claude/settings.local.json
+*.log
+.DS_Store
