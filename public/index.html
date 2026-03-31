@@ -111,6 +111,34 @@
   }
   [data-time="night"] #stars { opacity: 1; }
 
+  /* SHOOTING STAR */
+  .shooting-star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    z-index: 2;
+    animation: shoot 1.2s ease-out forwards;
+    box-shadow: 0 0 4px white;
+  }
+  .shooting-star::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6));
+    transform-origin: right center;
+    transform: rotate(0deg);
+  }
+  @keyframes shoot {
+    0% { opacity: 0; transform: translate(0, 0); }
+    10% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-250px, 180px); }
+  }
+
   .star {
     position: absolute;
     width: 2px; height: 2px;
@@ -258,7 +286,7 @@
 
   /* DESK */
   #desk {
-    width: 280px;
+    width: 380px;
     height: 16px;
     background: #8B6914;
     border-radius: 4px 4px 0 0;
@@ -287,7 +315,7 @@
   #desk-items {
     position: absolute;
     top: -50px;
-    width: 280px;
+    width: 380px;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
@@ -413,6 +441,54 @@
     letter-spacing: 0.5px;
   }
 
+  /* MAC MINI */
+  .mac-mini {
+    width: 40px;
+    height: 10px;
+    background: linear-gradient(180deg, #c0c0c8 0%, #a0a0a8 100%);
+    border-radius: 3px;
+    position: relative;
+    box-shadow: 0 2px 0 #808088, inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .mac-mini::before {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 3px;
+    background: #909098;
+    border-radius: 0 0 3px 3px;
+  }
+  /* Tiny apple logo */
+  .mac-mini::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 50%;
+  }
+  .mac-mini-light {
+    position: absolute;
+    bottom: 1px;
+    right: 4px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #44dd66;
+    box-shadow: 0 0 4px #44dd66;
+    animation: mini-pulse 3s ease-in-out infinite;
+  }
+  @keyframes mini-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
   /* FOOD BOWL — clickable + shake when empty */
   #food-bowl { cursor: pointer; }
   #food-bowl:hover .bowl { filter: brightness(1.15); }
@@ -431,6 +507,38 @@
     0% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
     100% { transform: translateY(0); }
+  }
+  /* Knocked over */
+  #food-bowl.knocked .bowl {
+    animation: bowl-knock 0.5s ease-out forwards;
+  }
+  @keyframes bowl-knock {
+    0% { transform: rotate(0) translateX(0); }
+    40% { transform: rotate(70deg) translateX(8px) translateY(-4px); }
+    100% { transform: rotate(85deg) translateX(12px) translateY(2px); }
+  }
+  #food-bowl.knocked .bowl-fill {
+    transition: height 0.3s, opacity 0.5s;
+    height: 0% !important;
+    opacity: 0;
+  }
+  #food-bowl.knocked .bowl-label {
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  /* Token spill particles */
+  .spill-token {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #ff8c42;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: spill 0.8s ease-out forwards;
+  }
+  @keyframes spill {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--sx, 20px), var(--sy, 10px)) scale(0.3); opacity: 0; }
   }
 
   /* CLAUDE CHARACTER — blocky robot */
@@ -586,6 +694,63 @@
     to   { transform: translateY(5px); }
   }
 
+  /* PHONE */
+  .c-phone {
+    position: absolute;
+    bottom: 30px;
+    right: -28px;
+    width: 16px;
+    height: 26px;
+    background: #222;
+    border: 2px solid #444;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.4s, transform 0.4s;
+    transform: rotate(5deg);
+    pointer-events: none;
+    z-index: 20;
+  }
+  .c-phone-screen {
+    width: 10px;
+    height: 18px;
+    margin: 2px auto;
+    background: #1a3a5c;
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+  .c-phone-scroll {
+    position: absolute;
+    inset: 1px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: phone-scroll 3s linear infinite;
+  }
+  .c-phone-scroll span {
+    display: block;
+    height: 2px;
+    border-radius: 1px;
+    background: rgba(100,180,255,0.5);
+  }
+  .c-phone-scroll span:nth-child(odd) { width: 80%; }
+  .c-phone-scroll span:nth-child(even) { width: 50%; background: rgba(100,180,255,0.3); }
+  @keyframes phone-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  #claude.idle.browsing .c-phone {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+  #claude.idle.browsing .c-eye {
+    transform: scaleY(0.7);
+    animation: none;
+  }
+  #claude.idle.browsing #claude-body {
+    animation: body-float 5s ease-in-out infinite;
+  }
+
   /* SUNGLASSES */
   .c-sunglasses {
     position: absolute;
@@ -739,6 +904,38 @@
   }
   #claude.hungry .c-mouth-mid {
     bottom: auto; top: 8px;
+  }
+
+  /* ANGRY — eyebrows + red tint */
+  #claude.angry .c-eye {
+    animation: none;
+  }
+  #claude.angry .c-eye::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -2px;
+    width: 22px;
+    height: 4px;
+    background: #1a1008;
+    border-radius: 1px;
+  }
+  #claude.angry .c-eye:first-child::after {
+    transform: rotate(15deg);
+  }
+  #claude.angry .c-eye:last-child::after {
+    transform: rotate(-15deg);
+  }
+  #claude.angry .c-screen {
+    background: #cc4420;
+  }
+  #claude.angry #claude-body {
+    animation: angry-shake 0.15s ease-in-out infinite;
+  }
+  @keyframes angry-shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-4px) rotate(-1deg); }
+    75% { transform: translateX(4px) rotate(1deg); }
   }
 
   #claude.starving .c-block {
@@ -1364,6 +1561,9 @@
       <div class="mug">
         <div class="steam"><span></span><span></span><span></span></div>
       </div>
+      <div class="mac-mini">
+        <div class="mac-mini-light"></div>
+      </div>
       <div class="monitor" onclick="openTerminal()">
         <div class="monitor-screen">
           <div class="monitor-code" id="monitor-code">const t=tokens
@@ -1414,6 +1614,15 @@ eat(t)
         <div class="c-leg"></div>
         <div class="c-leg"></div>
         <div class="c-leg"></div>
+      </div>
+      <div class="c-phone" id="c-phone">
+        <div class="c-phone-screen">
+          <div class="c-phone-scroll">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
       </div>
       <div class="c-umbrella" id="c-umbrella">☂️</div>
       <div class="c-zzz" id="zzz1">Z</div>
@@ -1732,6 +1941,47 @@ function triggerSpeech() {
   }
 }
 
+// Shooting stars — rare, only at night
+let shootingStarTimer = null;
+
+function scheduleShootingStar() {
+  if (shootingStarTimer) clearTimeout(shootingStarTimer);
+  const delay = 45000 + Math.random() * 90000; // 45s-135s between attempts
+  shootingStarTimer = setTimeout(() => {
+    if (state.timeOfDay === 'night' && Math.random() > 0.5) {
+      const star = document.createElement('div');
+      star.className = 'shooting-star';
+      star.style.top = (5 + Math.random() * 25) + '%';
+      star.style.left = (30 + Math.random() * 60) + '%';
+      document.getElementById('stars').appendChild(star);
+      setTimeout(() => star.remove(), 1500);
+    }
+    scheduleShootingStar();
+  }, delay);
+}
+
+scheduleShootingStar();
+
+// Idle browsing — occasionally pulls out phone when bored
+let browsingTimeout = null;
+
+function scheduleBrowsing() {
+  if (browsingTimeout) clearTimeout(browsingTimeout);
+  browsingTimeout = setTimeout(() => {
+    const claude = document.getElementById('claude');
+    if (state.mode === 'idle' && Math.random() > 0.4) {
+      claude.classList.add('browsing');
+      showSpeech(['scrolling...', 'hmm interesting', 'seen this one', 'ooh', 'nothing good on'][Math.floor(Math.random() * 5)]);
+      setTimeout(() => {
+        claude.classList.remove('browsing');
+      }, 8000 + Math.random() * 7000);
+    }
+    scheduleBrowsing();
+  }, 20000 + Math.random() * 40000);
+}
+
+scheduleBrowsing();
+
 // Auto-speech timer
 function scheduleNextSpeech() {
   const delay = 30000 + Math.random() * 60000; // 30-90s
@@ -1943,12 +2193,69 @@ function manualFeed() {
   spawnFoodParticle('treat');
 }
 
+let hasKnockedBowl = false;
+
 function updateBowlShake(hunger) {
   const bowl = document.getElementById('food-bowl');
-  if (hunger <= 15) {
+  if (hunger <= 0 && !hasKnockedBowl) {
+    knockBowlOver();
+  } else if (hunger <= 15 && !hasKnockedBowl) {
     bowl.classList.add('shaking');
-  } else {
+  } else if (hunger > 15) {
     bowl.classList.remove('shaking');
+    // Reset bowl when fed again
+    if (hasKnockedBowl && hunger > 30) {
+      bowl.classList.remove('knocked');
+      hasKnockedBowl = false;
+    }
+  }
+}
+
+function knockBowlOver() {
+  hasKnockedBowl = true;
+  const claude = document.getElementById('claude');
+  const bowl = document.getElementById('food-bowl');
+
+  // Walk to bowl
+  claude.classList.add('at-bowl');
+
+  setTimeout(() => {
+    // Get angry
+    claude.classList.add('angry');
+    showSpeech(["EMPTY?!", "are you KIDDING me", "UNACCEPTABLE", "NO TOKENS?!", "I QUIT"][Math.floor(Math.random() * 5)]);
+    playSpeechSound("UNACCEPTABLE");
+
+    setTimeout(() => {
+      // Knock it
+      bowl.classList.remove('shaking');
+      bowl.classList.add('knocked');
+      spawnSpillTokens();
+
+      setTimeout(() => {
+        // Calm down, walk back
+        claude.classList.remove('angry');
+        claude.classList.remove('at-bowl');
+        setTimeout(() => {
+          showSpeech("...sorry about that");
+        }, 1500);
+      }, 2000);
+    }, 800);
+  }, 800);
+}
+
+function spawnSpillTokens() {
+  const bowl = document.getElementById('food-bowl');
+  const rect = bowl.getBoundingClientRect();
+  for (let i = 0; i < 8; i++) {
+    const t = document.createElement('div');
+    t.className = 'spill-token';
+    t.style.left = (rect.left + rect.width / 2) + 'px';
+    t.style.top = (rect.top + 5) + 'px';
+    t.style.setProperty('--sx', (10 + Math.random() * 30) + 'px');
+    t.style.setProperty('--sy', (Math.random() * 20 - 5) + 'px');
+    t.style.animationDelay = (Math.random() * 0.2) + 's';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1200);
   }
 }
 
@@ -2136,7 +2443,8 @@ function render(s) {
   // WEATHER
   applyWeather(s.weather);
 
-  // CHARACTER CLASS — mode + hunger state
+  // CHARACTER CLASS — mode + hunger state (clear browsing on any non-idle state)
+  if (s.mode !== 'idle') document.getElementById('claude').classList.remove('browsing');
   let classes = s.mode;
   if (s.mode !== 'sleeping' && s.mode !== 'rate_limited') {
     if (s.hunger <= 20) classes += ' starving';
