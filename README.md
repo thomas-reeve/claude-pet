@@ -69,7 +69,9 @@ That's it. Claude Code and Cowork will now feed your pet automatically.
 
 ### Weather Location
 
-Defaults to Northampton, UK. Set via environment variables:
+Click the weather badge in-app to search and set your city. Location is persisted across restarts.
+
+You can also set it via environment variables:
 
 ```bash
 LAT=40.7128 LON=-74.0060 node server.js  # New York
