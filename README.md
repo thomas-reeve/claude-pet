@@ -1,126 +1,115 @@
-# Claude Pet 🤖
+# Claude Pet
 
-A living desktop companion for your Mac mini. Claude eats tokens, reacts to weather, changes with the time of day, and talks in Animal Crossing bleeps.
+A living desktop companion that reacts to your Claude Code and Cowork activity. It eats tokens, reacts to real weather, changes with the time of day, and talks in Animal Crossing bleeps.
 
-## Setup
+<!-- TODO: Replace with your screen recording -->
+![Claude Pet demo](demo.gif)
+
+## Features
+
+- **Reacts to Claude activity** — automatically shows what Claude Code/Cowork is doing via hooks
+- **Weather-aware** — real weather from Open-Meteo (rain, snow, storms, sunshine with sunglasses)
+- **Time of day** — dawn, day, dusk, night with sky/lighting transitions, stars, sun/moon
+- **Hunger system** — drains over time, pet gets sad and slow when starving
+- **Speech bubbles** — random contextual dialogue with Animal Crossing-style bleep voice
+- **Rate limit reactions** — slumps over with crash stars, countdown timer, confetti on recovery
+- **Terminal activity log** — click the monitor on the desk to see work history
+- **Food bowl** — visual token level on the desk
+- **Mobile friendly** — works on phones via local network or Tailscale
+
+## Quick Start
 
 ```bash
+git clone https://github.com/thomas-reeve/claude-pet.git
 cd claude-pet
 npm install
 node server.js
 ```
 
-Then open `http://localhost:3950` in a fullscreen browser window.
+Open http://localhost:3950 in a browser.
 
-For remote access (mobile, other devices), use Tailscale:
-`http://<your-mac-mini-tailscale-ip>:3950`
+## Connecting to Claude Code / Cowork
 
-Or on your local network:
-`http://macmini.local:3950`
+Add these hooks to your `~/.claude/settings.json` so the pet reacts to Claude activity automatically:
 
----
-
-## Controlling Claude from Cowork / Scripts
-
-### POST /status
-
-```bash
-# Claude starts working
-curl -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"working","task":"processing inbox","tokens":2340}'
-
-# Claude finishes
-curl -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"idle"}'
-
-# Rate limited (weekly)
-curl -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"rate_limited","resetsAt":"2026-04-07T09:00:00Z"}'
-
-# Rate limited (session, resets sooner)
-curl -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"rate_limited","resetsAt":"2026-04-01T14:30:00Z"}'
-
-# Back to idle (after limit resets) — triggers confetti + "I'M BACK"
-curl -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"idle"}'
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys,json,urllib.request\ntry:\n  d=json.load(sys.stdin)\n  n=d.get('tool_name','task')\n  i=d.get('tool_input',{})\n  desc=i.get('description',i.get('command',i.get('pattern',i.get('file_path',''))))or''\n  task=(n+(' — '+desc[:50]) if desc else n)[:80]\n  body=json.dumps({'state':'working','task':task,'tokens':500}).encode()\n  req=urllib.request.Request('http://localhost:3950/status',data=body,headers={'Content-Type':'application/json'})\n  urllib.request.urlopen(req,timeout=3)\nexcept: pass\n\" 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import urllib.request,json; urllib.request.urlopen(urllib.request.Request('http://localhost:3950/status',data=json.dumps({'state':'idle'}).encode(),headers={'Content-Type':'application/json'}),timeout=3)\" 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
-### Quick test URLs
-```
-http://localhost:3950/feed?tokens=2000&task=inbox+sweep
-http://localhost:3950/status
-```
+That's it. Claude Code and Cowork will now feed your pet automatically.
 
----
+## Configuration
 
-## Cowork Integration (wrapper script)
+### Weather Location
 
-Save as `~/scripts/claude-status.sh`:
-
-```bash
-#!/bin/bash
-# Usage: claude-status working "summarising emails" 2340
-#        claude-status idle
-#        claude-status rate_limited "" "" "2026-04-07T09:00:00Z"
-
-STATE=$1
-TASK=${2:-""}
-TOKENS=${3:-0}
-RESETS=${4:-""}
-
-PAYLOAD="{\"state\":\"$STATE\",\"task\":\"$TASK\",\"tokens\":$TOKENS}"
-if [ -n "$RESETS" ]; then
-  PAYLOAD="{\"state\":\"$STATE\",\"resetsAt\":\"$RESETS\"}"
-fi
-
-curl -s -X POST http://localhost:3950/status \
-  -H "Content-Type: application/json" \
-  -d "$PAYLOAD" > /dev/null
-```
-
-Then in your Cowork task scripts:
-```bash
-~/scripts/claude-status.sh working "processing inbox" 2340
-# ... do the work ...
-~/scripts/claude-status.sh idle
-```
-
----
-
-## Weather
-
-Weather auto-fetches from Open-Meteo (free, no API key).
-Defaults to Northampton, UK. To change location, edit `server.js`:
+Defaults to Northampton, UK. Edit `server.js` to change:
 ```js
 const LAT = 52.2368;
 const LON = -0.8957;
 ```
 
----
+Weather is fetched from [Open-Meteo](https://open-meteo.com/) — free, no API key needed.
 
-## Time of Day
+### Network Access
+
+By default the server only listens on localhost. To access from other devices:
+
+```bash
+HOST=0.0.0.0 node server.js
+```
+
+### API Key (optional)
+
+If exposing on a network, you can require an API key:
+
+```bash
+API_KEY=your-secret HOST=0.0.0.0 node server.js
+```
+
+Hooks would then need to include the key in their requests.
+
+### Time of Day
 
 Automatic based on system clock:
-- Dawn: 05:00–08:00
-- Day: 08:00–18:00
-- Dusk: 18:00–21:00
-- Night: 21:00–05:00
+- Dawn: 05:00 - 08:00
+- Day: 08:00 - 18:00
+- Dusk: 18:00 - 21:00
+- Night: 21:00 - 05:00
 
----
-
-## Run as a persistent service (launchd)
+## Run as a Service (macOS)
 
 Save as `~/Library/LaunchAgents/com.claudepet.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
@@ -137,12 +126,37 @@ Save as `~/Library/LaunchAgents/com.claudepet.plist`:
   <key>StandardOutPath</key>
   <string>/tmp/claude-pet.log</string>
   <key>StandardErrorPath</key>
-  <string>/tmp/claude-pet-err.log</string>
+  <string>/tmp/claude-pet.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOST</key>
+    <string>0.0.0.0</string>
+  </dict>
 </dict>
 </plist>
 ```
 
-Load it:
 ```bash
 launchctl load ~/Library/LaunchAgents/com.claudepet.plist
 ```
+
+## API
+
+```bash
+# Update state
+curl -X POST http://localhost:3950/status \
+  -H "Content-Type: application/json" \
+  -d '{"state":"working","task":"processing inbox","tokens":2340}'
+
+# Check state
+curl http://localhost:3950/status
+
+# Test feed
+curl "http://localhost:3950/feed?tokens=2000&task=inbox+sweep"
+```
+
+Valid states: `idle`, `working`, `sleeping`, `rate_limited`
+
+## License
+
+MIT
