@@ -72,14 +72,31 @@ function getTimeOfDay() {
 }
 
 // --- Weather (Open-Meteo, no API key needed) ---
-// Weather location — set via env vars or defaults to Northampton, UK
-const LAT = parseFloat(process.env.LAT) || 52.2368;
-const LON = parseFloat(process.env.LON) || -0.8957;
+// Weather location — persisted, configurable via UI or env vars
+const LOCATION_FILE = path.join(__dirname, '.claude-pet-location.json');
+
+function loadLocation() {
+  try {
+    return JSON.parse(fs.readFileSync(LOCATION_FILE, 'utf8'));
+  } catch {
+    return {
+      lat: parseFloat(process.env.LAT) || 52.2368,
+      lon: parseFloat(process.env.LON) || -0.8957,
+      name: process.env.LOCATION_NAME || 'Northampton, UK'
+    };
+  }
+}
+
+function saveLocation(loc) {
+  fs.writeFileSync(LOCATION_FILE, JSON.stringify(loc, null, 2));
+}
+
+let location = loadLocation();
 
 async function fetchWeather() {
   try {
     const fetch = (await import('node-fetch')).default;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&hourly=temperature_2m&forecast_days=1`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current_weather=true&hourly=temperature_2m&forecast_days=1`;
     const res = await fetch(url);
     const data = await res.json();
     const code = data.current_weather?.weathercode ?? 0;
@@ -131,7 +148,7 @@ setInterval(fetchWeather, 30 * 60 * 1000);
 
 // --- Broadcast ---
 function broadcast() {
-  const payload = JSON.stringify({ type: 'state', data: claudeState });
+  const payload = JSON.stringify({ type: 'state', data: { ...claudeState, location } });
   wss.clients.forEach(client => {
     if (client.readyState === 1) client.send(payload);
   });
@@ -191,7 +208,7 @@ app.post('/status', requireAuth, (req, res) => {
 // GET /status — check current state
 app.get('/status', (req, res) => {
   claudeState.timeOfDay = getTimeOfDay();
-  res.json(claudeState);
+  res.json({ ...claudeState, location });
 });
 
 // GET /feed — manually feed tokens (for testing)
@@ -218,6 +235,23 @@ app.get('/feed', requireAuth, (req, res) => {
     broadcast();
   }, 5000);
   res.json({ ok: true });
+});
+
+// GET /location — current location
+app.get('/location', (req, res) => {
+  res.json(location);
+});
+
+// POST /location — update location
+app.post('/location', (req, res) => {
+  const { lat, lon, name } = req.body;
+  if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return res.status(400).json({ error: 'invalid coordinates' });
+  }
+  location = { lat, lon, name: String(name || '').slice(0, 100) };
+  saveLocation(location);
+  fetchWeather();
+  res.json({ ok: true, location });
 });
 
 const PORT = process.env.PORT || 3950;

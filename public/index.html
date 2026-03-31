@@ -919,6 +919,97 @@
     background: #3a4a65;
   }
 
+  /* LOCATION MODAL */
+  #location-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #location-modal.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #location-window {
+    width: 340px;
+    max-width: 90vw;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    transform: scale(0.9) translateY(10px);
+    transition: transform 0.3s, background 1s;
+  }
+  #location-modal.visible #location-window {
+    transform: scale(1) translateY(0);
+  }
+  #location-window h3 {
+    font-family: var(--pixel);
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  #location-search {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #location-search:focus {
+    border-color: var(--accent);
+  }
+  #location-search::placeholder {
+    color: var(--text2);
+  }
+  #location-results {
+    margin-top: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .loc-result {
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .loc-result:hover {
+    background: var(--bg2);
+  }
+  .loc-result .loc-country {
+    color: var(--text2);
+    font-size: 10px;
+  }
+  #location-current {
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+  }
+  #location-results::-webkit-scrollbar { width: 4px; }
+  #location-results::-webkit-scrollbar-track { background: transparent; }
+  #location-results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Make weather badge clickable */
+  #weather-badge { cursor: pointer; transition: filter 0.2s; }
+  #weather-badge:hover { filter: brightness(1.1); }
+
   /* Make monitor clickable */
   .monitor { cursor: pointer; transition: filter 0.2s; }
   .monitor:hover { filter: brightness(1.3); }
@@ -1273,7 +1364,7 @@ eat(t)
   </div>
 
   <!-- WEATHER -->
-  <div id="weather-badge">
+  <div id="weather-badge" onclick="openLocation()">
     <span id="weather-icon">☀️</span>
     <span id="weather-temp">--°C</span>
   </div>
@@ -1291,6 +1382,16 @@ eat(t)
         <span>claude-pet — activity</span>
       </div>
       <div id="terminal-body"></div>
+    </div>
+  </div>
+
+  <!-- LOCATION MODAL -->
+  <div id="location-modal" onclick="if(event.target===this)closeLocation()">
+    <div id="location-window">
+      <h3>Set Location</h3>
+      <input type="text" id="location-search" placeholder="Search city..." autocomplete="off">
+      <div id="location-results"></div>
+      <div id="location-current"></div>
     </div>
   </div>
 
@@ -1687,6 +1788,79 @@ function spawnFoodParticle(task) {
 }
 
 // ============================================================
+// LOCATION MODAL
+// ============================================================
+let searchTimeout = null;
+
+function openLocation() {
+  const modal = document.getElementById('location-modal');
+  const input = document.getElementById('location-search');
+  const results = document.getElementById('location-results');
+  const current = document.getElementById('location-current');
+
+  results.innerHTML = '';
+  input.value = '';
+  current.textContent = state.location ? 'Current: ' + state.location.name : '';
+  modal.classList.add('visible');
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeLocation() {
+  document.getElementById('location-modal').classList.remove('visible');
+}
+
+document.getElementById('location-search').addEventListener('input', (e) => {
+  const query = e.target.value.trim();
+  if (searchTimeout) clearTimeout(searchTimeout);
+  if (query.length < 2) {
+    document.getElementById('location-results').innerHTML = '';
+    return;
+  }
+  searchTimeout = setTimeout(() => geocodeSearch(query), 300);
+});
+
+async function geocodeSearch(query) {
+  const results = document.getElementById('location-results');
+  try {
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en`);
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) {
+      results.innerHTML = '<div class="loc-result" style="cursor:default;color:var(--text2)">No results found</div>';
+      return;
+    }
+    results.innerHTML = data.results.map(r => {
+      const parts = [r.name, r.admin1, r.country].filter(Boolean);
+      return `<div class="loc-result" onclick="selectLocation(${r.latitude},${r.longitude},'${parts.join(', ').replace(/'/g, "\\'")}')">
+        ${r.name} <span class="loc-country">${[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+      </div>`;
+    }).join('');
+  } catch {
+    results.innerHTML = '<div class="loc-result" style="cursor:default;color:var(--text2)">Search failed</div>';
+  }
+}
+
+async function selectLocation(lat, lon, name) {
+  try {
+    await fetch('/location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat, lon, name })
+    });
+    document.getElementById('location-current').textContent = 'Updated to: ' + name;
+    document.getElementById('location-results').innerHTML = '';
+    document.getElementById('location-search').value = '';
+    setTimeout(closeLocation, 1000);
+  } catch {
+    document.getElementById('location-current').textContent = 'Failed to update';
+  }
+}
+
+// Close any modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeTerminal(); closeLocation(); }
+});
+
+// ============================================================
 // TERMINAL MODAL
 // ============================================================
 function openTerminal() {
@@ -1733,10 +1907,7 @@ function timeAgo(ts) {
   return Math.floor(hrs / 24) + 'd ago';
 }
 
-// Close on Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeTerminal();
-});
+// (Escape handled by shared handler below)
 
 // ============================================================
 // CONFETTI
