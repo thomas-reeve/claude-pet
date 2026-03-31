@@ -68,10 +68,10 @@ That's it. Claude Code and Cowork will now feed your pet automatically.
 
 ### Weather Location
 
-Defaults to Northampton, UK. Edit `server.js` to change:
-```js
-const LAT = 52.2368;
-const LON = -0.8957;
+Defaults to Northampton, UK. Set via environment variables:
+
+```bash
+LAT=40.7128 LON=-74.0060 node server.js  # New York
 ```
 
 Weather is fetched from [Open-Meteo](https://open-meteo.com/) — free, no API key needed.

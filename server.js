@@ -72,9 +72,9 @@ function getTimeOfDay() {
 }
 
 // --- Weather (Open-Meteo, no API key needed) ---
-// Northampton, UK (NN1)
-const LAT = 52.2368;
-const LON = -0.8957;
+// Weather location — set via env vars or defaults to Northampton, UK
+const LAT = parseFloat(process.env.LAT) || 52.2368;
+const LON = parseFloat(process.env.LON) || -0.8957;
 
 async function fetchWeather() {
   try {
