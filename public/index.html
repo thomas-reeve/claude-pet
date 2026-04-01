@@ -441,6 +441,117 @@
     letter-spacing: 0.5px;
   }
 
+  /* MESS ITEMS */
+  .mess-item {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.8s, transform 0.5s;
+    pointer-events: none;
+    z-index: 13;
+  }
+  .mess-item.visible { opacity: 1; }
+
+  /* Extra coffee cup */
+  .mess-cup2 {
+    top: -36px; left: 200px;
+    width: 14px; height: 12px;
+    background: #7a9ab0;
+    border-radius: 2px 2px 3px 3px;
+    border: 1px solid #6080a0;
+  }
+  .mess-cup2::before {
+    content: '';
+    position: absolute;
+    right: -4px; top: 2px;
+    width: 4px; height: 6px;
+    border: 1px solid #6080a0;
+    border-left: none;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* Paper stack */
+  .mess-papers {
+    top: -24px; left: 80px;
+    width: 32px; height: 8px;
+  }
+  .mess-papers::before, .mess-papers::after {
+    content: '';
+    position: absolute;
+    width: 28px; height: 3px;
+    background: #f0ece0;
+    border-radius: 1px;
+  }
+  .mess-papers::before { top: 0; left: 0; transform: rotate(-2deg); }
+  .mess-papers::after { top: 4px; left: 2px; transform: rotate(1deg); }
+
+  /* Sticky notes on monitor */
+  .mess-sticky {
+    top: -46px; right: 18px;
+    width: 16px; height: 14px;
+    background: #ffe066;
+    border-radius: 1px;
+    transform: rotate(3deg);
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+  }
+  .mess-sticky::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 2px;
+    width: 10px; height: 2px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 1px;
+  }
+
+  /* Energy drink can */
+  .mess-can {
+    top: -34px; left: 140px;
+    width: 10px; height: 22px;
+    background: linear-gradient(180deg, #44cc44 0%, #228822 100%);
+    border-radius: 3px 3px 2px 2px;
+    border: 1px solid #116611;
+  }
+
+  /* More cups */
+  .mess-cup3 {
+    top: -30px; left: 110px;
+    width: 12px; height: 10px;
+    background: #d4a84b;
+    border-radius: 2px 2px 3px 3px;
+    border: 1px solid #b08830;
+    transform: rotate(-8deg);
+  }
+
+  /* Paper chaos */
+  .mess-chaos1 {
+    top: -20px; left: 50px;
+    width: 24px; height: 3px;
+    background: #f0ece0;
+    transform: rotate(12deg);
+    border-radius: 1px;
+  }
+  .mess-chaos2 {
+    top: -16px; right: 60px;
+    width: 20px; height: 3px;
+    background: #e8e4d8;
+    transform: rotate(-5deg);
+    border-radius: 1px;
+  }
+
+  /* Falling item */
+  .mess-falling {
+    top: -8px; right: -8px;
+    width: 12px; height: 16px;
+    background: #f0ece0;
+    transform: rotate(25deg);
+    border-radius: 1px;
+    animation: desk-fall 2s ease-in infinite;
+  }
+  @keyframes desk-fall {
+    0%, 90% { transform: rotate(25deg) translateY(0); }
+    95% { transform: rotate(35deg) translateY(4px); }
+    100% { transform: rotate(40deg) translateY(8px); opacity: 0.5; }
+  }
+
   /* MAC MINI */
   .mac-mini {
     width: 40px;
@@ -876,6 +987,53 @@
   }
 
   /* RATE LIMITED */
+  /* ERROR STATE */
+  #claude.error .c-screen {
+    background: #cc2222;
+    animation: error-flash 0.3s ease-in-out infinite alternate;
+  }
+  @keyframes error-flash {
+    from { background: #cc2222; }
+    to { background: #aa1818; }
+  }
+  #claude.error .c-eye {
+    height: 26px;
+    width: 16px;
+    border-radius: 2px;
+    animation: none;
+  }
+  #claude.error .c-mouth::before,
+  #claude.error .c-mouth::after {
+    display: none;
+  }
+  #claude.error .c-mouth-mid {
+    width: 30px;
+    height: 3px;
+    bottom: 4px;
+  }
+  #claude.error #claude-body {
+    animation: error-shake 0.2s ease-in-out infinite;
+  }
+  @keyframes error-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px) rotate(-1deg); }
+    75% { transform: translateX(3px) rotate(1deg); }
+  }
+  /* Smoke particles */
+  .smoke {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: rgba(100,100,100,0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: smoke-rise 1.5s ease-out forwards;
+  }
+  @keyframes smoke-rise {
+    0% { transform: translateY(0) scale(0.5); opacity: 0.7; }
+    100% { transform: translateY(-80px) scale(2.5); opacity: 0; }
+  }
+
   #claude.rate_limited #claude-body {
     animation: slump 0.3s ease-out forwards, slump-idle 4s ease-in-out 0.4s infinite;
   }
@@ -889,8 +1047,9 @@
   #claude.rate_limited .c-screen { filter: grayscale(0.6) brightness(0.7); }
 
   /* HUNGER STATES */
-  #claude.hungry .c-block {
-    filter: saturate(0.7) brightness(0.95);
+  #claude.hungry .c-block,
+  #claude.hungry .c-legs {
+    filter: saturate(0.85) brightness(0.97);
   }
   #claude.hungry #claude-body {
     animation: body-float 5s ease-in-out infinite; /* slower float */
@@ -938,8 +1097,9 @@
     75% { transform: translateX(4px) rotate(1deg); }
   }
 
-  #claude.starving .c-block {
-    filter: saturate(0.4) brightness(0.85);
+  #claude.starving .c-block,
+  #claude.starving .c-legs {
+    filter: saturate(0.7) brightness(0.92);
   }
   #claude.starving #claude-body {
     animation: body-float 8s ease-in-out infinite; /* very slow */
@@ -956,6 +1116,161 @@
   }
   #claude.starving .c-mouth-mid {
     bottom: auto; top: 8px;
+  }
+
+  /* TOOL ANIMATIONS */
+
+  /* READ — squint eyes, lean forward */
+  #claude.working[data-tool="read"] .c-eye {
+    transform: scaleY(0.5);
+    animation: none;
+  }
+  #claude.working[data-tool="read"] #claude-body {
+    animation: lean-forward 2s ease-in-out infinite;
+  }
+  @keyframes lean-forward {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-2px) rotate(2deg) scale(1.02); }
+  }
+  #claude.working[data-tool="read"] .c-screen::after {
+    content: 'reading...';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 7px;
+    color: #00ff88;
+    opacity: 0.8;
+  }
+
+  /* WRITE — typing animation */
+  #claude.working[data-tool="write"] #claude-body {
+    animation: body-work 0.25s ease-in-out infinite;
+  }
+  #claude.working[data-tool="write"] .c-leg {
+    animation-duration: 0.12s;
+  }
+  #claude.working[data-tool="write"] .c-screen::after {
+    content: '> _';
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    font-family: var(--mono);
+    font-size: 8px;
+    color: #00ff88;
+    animation: cursor-blink 0.5s step-end infinite;
+  }
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* BASH — sparks */
+  #claude.working[data-tool="bash"] .c-block {
+    box-shadow:
+      inset -10px -10px 0 #C05A28,
+      inset 10px 10px 0 #F0A870,
+      0 12px 0 #9A3E10,
+      0 18px 30px rgba(0,0,0,0.25),
+      -3px 0 8px rgba(255,160,0,0.3),
+      3px 0 8px rgba(255,160,0,0.3);
+  }
+  .spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #ffaa00;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: spark-fly 0.6s ease-out forwards;
+    box-shadow: 0 0 4px #ffaa00;
+  }
+  @keyframes spark-fly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--spark-x, 30px), var(--spark-y, -20px)) scale(0); opacity: 0; }
+  }
+
+  /* WEB — browser window */
+  .c-browser {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 55px;
+    background: #fff;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    z-index: 25;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    overflow: hidden;
+  }
+  .c-browser-bar {
+    height: 10px;
+    background: #e8e8e8;
+    display: flex;
+    align-items: center;
+    padding: 0 3px;
+    gap: 2px;
+  }
+  .c-browser-bar span {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+  }
+  .c-browser-bar span:nth-child(1) { background: #ff5f56; }
+  .c-browser-bar span:nth-child(2) { background: #ffbd2e; }
+  .c-browser-bar span:nth-child(3) { background: #27c93f; }
+  .c-browser-body {
+    padding: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .c-browser-body span {
+    display: block;
+    height: 3px;
+    background: #ddd;
+    border-radius: 1px;
+  }
+  .c-browser-body span:nth-child(odd) { width: 90%; }
+  .c-browser-body span:nth-child(even) { width: 60%; }
+  #claude.working[data-tool="web"] .c-browser { opacity: 1; }
+  #claude.working[data-tool="web"] .c-eye {
+    transform: scaleY(0.5);
+    animation: none;
+  }
+
+  /* GIT — fist pump */
+  #claude.working[data-tool="git"] #claude-body {
+    animation: fist-pump 0.6s ease-in-out;
+  }
+  @keyframes fist-pump {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    30% { transform: translateY(5px) rotate(-2deg); }
+    60% { transform: translateY(-15px) rotate(3deg); }
+    80% { transform: translateY(-10px) rotate(1deg); }
+  }
+
+  /* TEST — pacing */
+  #claude.working[data-tool="test"] #claude-body {
+    animation: pace 1.2s ease-in-out infinite;
+  }
+  @keyframes pace {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-20px); }
+    75% { transform: translateX(20px); }
+  }
+  #claude.working[data-tool="test"] .c-eye {
+    animation: nervous-blink 1.5s ease-in-out infinite;
+  }
+  @keyframes nervous-blink {
+    0%, 70%, 100% { transform: scaleY(1); }
+    75% { transform: scaleY(0.08); }
+    85% { transform: scaleY(1); }
+    90% { transform: scaleY(0.08); }
   }
 
   /* EATING ANIMATION */
@@ -1445,6 +1760,8 @@
   #nameplate[data-state="sleeping"] .np-label { color: #8899cc; }
   #nameplate[data-state="rate_limited"] .np-dot { background: #cc5566; }
   #nameplate[data-state="rate_limited"] .np-label { color: #cc5566; }
+  #nameplate[data-state="error"] .np-dot { background: #ee3333; animation: pulse-dot 0.5s ease-in-out infinite; }
+  #nameplate[data-state="error"] .np-label { color: #ee3333; }
   @keyframes ticker-scroll {
     from { transform: translateX(0); }
     to { transform: translateX(-100%); }
@@ -1465,6 +1782,42 @@
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
 
+  /* CLOCK */
+  #clock {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 35;
+    text-align: center;
+    pointer-events: none;
+  }
+  #clock-time {
+    font-family: var(--vt);
+    font-size: 36px;
+    color: var(--text);
+    letter-spacing: 2px;
+    line-height: 1;
+    transition: color var(--transition-speed);
+  }
+  #clock-colon {
+    animation: colon-blink 1s step-end infinite;
+  }
+  @keyframes colon-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  #clock-date {
+    font-family: var(--vt);
+    font-size: 14px;
+    color: var(--text2);
+    letter-spacing: 1px;
+    margin-top: 2px;
+    transition: color var(--transition-speed);
+  }
+  [data-time="night"] #clock-time { color: #556688; }
+  [data-time="night"] #clock-date { color: #445566; }
+
   /* MOBILE RESPONSIVE */
   @media (max-width: 600px) {
     #claude-body {
@@ -1473,8 +1826,11 @@
     }
     #room { transform: translateX(-50%) scale(0.7); transform-origin: bottom center; }
     #food-bowl { transform: scale(0.7); transform-origin: bottom left; left: calc(50% - 160px); }
+    #clock { top: 10px; }
+    #clock-time { font-size: 24px; }
+    #clock-date { font-size: 11px; }
     #nameplate {
-      top: 10px; left: 10px; right: 10px;
+      top: 50px; left: 10px; right: 10px;
       font-size: 9px;
       padding: 6px 10px;
       gap: 6px;
@@ -1585,6 +1941,15 @@ eat(t)
         </div>
       </div>
     </div>
+    <!-- Mess items (appear at messiness thresholds) -->
+    <div class="mess-item mess-cup2" data-mess="20"></div>
+    <div class="mess-item mess-papers" data-mess="35"></div>
+    <div class="mess-item mess-sticky" data-mess="50"></div>
+    <div class="mess-item mess-can" data-mess="65"></div>
+    <div class="mess-item mess-cup3" data-mess="65"></div>
+    <div class="mess-item mess-chaos1" data-mess="80"></div>
+    <div class="mess-item mess-chaos2" data-mess="80"></div>
+    <div class="mess-item mess-falling" data-mess="100"></div>
     <div id="desk"></div>
   </div>
 
@@ -1615,6 +1980,10 @@ eat(t)
         <div class="c-leg"></div>
         <div class="c-leg"></div>
       </div>
+      <div class="c-browser" id="c-browser">
+        <div class="c-browser-bar"><span></span><span></span><span></span></div>
+        <div class="c-browser-body"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
       <div class="c-phone" id="c-phone">
         <div class="c-phone-screen">
           <div class="c-phone-scroll">
@@ -1639,6 +2008,12 @@ eat(t)
   <!-- SPEECH BUBBLE -->
   <div id="speech-bubble" onclick="playSpeechSound(currentSpeech)">
     <span id="speech-text"></span>
+  </div>
+
+  <!-- CLOCK -->
+  <div id="clock">
+    <div id="clock-time"><span id="clock-h">00</span><span id="clock-colon">:</span><span id="clock-m">00</span></div>
+    <div id="clock-date">---</div>
   </div>
 
   <!-- NAMEPLATE -->
@@ -1844,6 +2219,17 @@ const speeches = {
     "rare",
     "❄️ beautiful",
   ],
+  error: [
+    "uh oh",
+    "that's not right",
+    "...oops",
+    "error",
+    "let me try that again",
+    "something broke",
+    "oh no oh no",
+    "this is fine. this is fine.",
+    "AAAAAA",
+  ],
   working_ate: [
     "2,340 tokens? don't mind if I do",
     "absolutely delicious",
@@ -1939,6 +2325,55 @@ function triggerSpeech() {
     eye.classList.add('peeking');
     setTimeout(() => eye.classList.remove('peeking'), 1200);
   }
+}
+
+// Error smoke
+let smokeInterval = null;
+
+function startSmoke() {
+  if (smokeInterval) return;
+  smokeInterval = setInterval(() => {
+    const claude = document.getElementById('claude');
+    const rect = claude.getBoundingClientRect();
+    const s = document.createElement('div');
+    s.className = 'smoke';
+    s.style.left = (rect.left + rect.width / 2 - 5 + (Math.random() * 30 - 15)) + 'px';
+    s.style.top = (rect.top - 5) + 'px';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 1600);
+  }, 300);
+}
+
+function stopSmoke() {
+  if (smokeInterval) { clearInterval(smokeInterval); smokeInterval = null; }
+}
+
+// Bash sparks
+let sparkInterval = null;
+
+function startSparks() {
+  if (sparkInterval) return;
+  sparkInterval = setInterval(() => {
+    const claude = document.getElementById('claude');
+    if (!claude.classList.contains('working') || claude.getAttribute('data-tool') !== 'bash') {
+      stopSparks();
+      return;
+    }
+    const rect = claude.getBoundingClientRect();
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const side = Math.random() > 0.5 ? 1 : -1;
+    spark.style.left = (rect.left + rect.width / 2 + side * (rect.width / 2 - 10)) + 'px';
+    spark.style.top = (rect.top + 20 + Math.random() * 60) + 'px';
+    spark.style.setProperty('--spark-x', (side * (15 + Math.random() * 25)) + 'px');
+    spark.style.setProperty('--spark-y', (-10 - Math.random() * 30) + 'px');
+    document.body.appendChild(spark);
+    setTimeout(() => spark.remove(), 700);
+  }, 150);
+}
+
+function stopSparks() {
+  if (sparkInterval) { clearInterval(sparkInterval); sparkInterval = null; }
 }
 
 // Shooting stars — rare, only at night
@@ -2364,8 +2799,8 @@ function openTerminal() {
   function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
   function addLine(html, cls) { const el = document.createElement('div'); el.className = 't-line' + (cls ? ' ' + cls : ''); el.innerHTML = html; body.appendChild(el); }
 
-  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED' };
-  const stateColor = state.mode === 'working' ? 't-accent' : state.mode === 'rate_limited' ? 't-warn' : '';
+  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED', error:'ERROR' };
+  const stateColor = state.mode === 'working' ? 't-accent' : state.mode === 'rate_limited' ? 't-warn' : state.mode === 'error' ? 't-warn' : '';
 
   addLine('<span class="t-prompt">$</span> claude-pet --status');
   addLine(`<span class="${stateColor}">[${labels[state.mode] || 'IDLE'}]</span> ${esc(state.task || 'no active task')}`);
@@ -2445,6 +2880,14 @@ function render(s) {
 
   // CHARACTER CLASS — mode + hunger state (clear browsing on any non-idle state)
   if (s.mode !== 'idle') document.getElementById('claude').classList.remove('browsing');
+
+  // TOOL TYPE
+  if (s.toolType) {
+    claude.setAttribute('data-tool', s.toolType);
+  } else {
+    claude.removeAttribute('data-tool');
+  }
+
   let classes = s.mode;
   if (s.mode !== 'sleeping' && s.mode !== 'rate_limited') {
     if (s.hunger <= 20) classes += ' starving';
@@ -2475,7 +2918,7 @@ function render(s) {
 
   // BADGE
   const badge = document.getElementById('badge');
-  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED' };
+  const labels = { idle:'IDLE', working:'WORKING', sleeping:'SLEEPING', rate_limited:'RATE LIMITED', error:'ERROR' };
   badge.className = 'badge ' + s.mode;
   document.getElementById('badge-label').textContent = labels[s.mode] || 'IDLE';
 
@@ -2513,6 +2956,17 @@ function render(s) {
   // BOWL FILL
   document.getElementById('bowl-fill').style.height = hunger + '%';
   updateBowlShake(hunger);
+
+  // MESSINESS
+  const messiness = s.messiness || 0;
+  document.querySelectorAll('.mess-item').forEach(el => {
+    const threshold = parseInt(el.getAttribute('data-mess'));
+    if (messiness >= threshold) {
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  });
 
   // MEAL LOG
   const mealLog = document.getElementById('meal-log');
@@ -2586,11 +3040,29 @@ function connect() {
         showSpeech(speeches.working[Math.floor(Math.random() * speeches.working.length)]);
         spawnFoodParticle(state.task);
         walkToBowl();
+        if (state.toolType === 'bash') startSparks();
       }
+      if (state.mode !== 'working' || state.toolType !== 'bash') stopSparks();
 
       if (prev !== 'sleeping' && state.mode === 'sleeping') {
         showSpeech('...zzzz...');
       }
+
+      if (prev !== 'error' && state.mode === 'error') {
+        showSpeech(speeches.error[Math.floor(Math.random() * speeches.error.length)]);
+        startSmoke();
+        // Auto-recover after 8s
+        setTimeout(() => {
+          if (state.mode === 'error') {
+            fetch('/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ state: 'idle' })
+            });
+          }
+        }, 8000);
+      }
+      if (state.mode !== 'error') stopSmoke();
 
       if (prev !== state.timeOfDay) {
         if (state.timeOfDay === 'dawn') showSpeech('*big stretch* good morning!');
@@ -2662,6 +3134,19 @@ document.getElementById('welcome-input').addEventListener('keydown', async (e) =
 });
 
 checkWelcome();
+
+// Clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-h').textContent = String(now.getHours()).padStart(2, '0');
+  document.getElementById('clock-m').textContent = String(now.getMinutes()).padStart(2, '0');
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('clock-date').textContent =
+    `${days[now.getDay()]} ${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]}`;
+}
+updateClock();
+setInterval(updateClock, 10000);
 
 // Update time of day check every minute
 setInterval(() => {

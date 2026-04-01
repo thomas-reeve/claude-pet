@@ -26,14 +26,16 @@ function requireAuth(req, res, next) {
 const STATE_FILE = path.join(__dirname, '.claude-pet-state.json');
 
 const defaultState = {
-  mode: 'idle',        // idle | working | sleeping | rate_limited
+  mode: 'idle',        // idle | working | sleeping | rate_limited | error
   task: null,
+  toolType: null,      // read | write | bash | web | git | test | null
   tokens: 0,
   tokensToday: 0,
   tokensSession: 0,
   recentMeals: [],     // last 3 tasks
   rateLimitResetsAt: null,
   hunger: 80,          // 0-100
+  messiness: 0,        // 0-100
   weather: { code: 0, description: 'clear', temp: 15 },
   timeOfDay: 'day',    // dawn | day | dusk | night
   lastUpdated: Date.now()
@@ -128,10 +130,15 @@ function weatherCodeToDesc(code) {
   return 'storm';
 }
 
-// --- Hunger drain ---
+// --- Hunger drain + night desk cleanup ---
 setInterval(() => {
   if (claudeState.mode !== 'rate_limited') {
     claudeState.hunger = Math.max(0, claudeState.hunger - 0.5);
+  }
+  // Night cleanup — messiness drains slowly
+  const hour = new Date().getHours();
+  if (hour >= 21 || hour < 5) {
+    claudeState.messiness = Math.max(0, claudeState.messiness - 2);
   }
   claudeState.timeOfDay = getTimeOfDay();
 
@@ -165,11 +172,26 @@ wss.on('connection', (ws) => {
   ws.on('close', () => console.log('[ws] client disconnected'));
 });
 
+// --- Tool type detection ---
+function detectToolType(task) {
+  if (!task) return null;
+  const t = task.toLowerCase();
+  if (/^(read|glob|grep|view)/.test(t)) return 'read';
+  if (/^(edit|write|notebookedit)/.test(t)) return 'write';
+  if (/^bash/.test(t)) {
+    if (/git\s/.test(t)) return 'git';
+    if (/test|jest|pytest|mocha|vitest|cargo test/.test(t)) return 'test';
+    return 'bash';
+  }
+  if (/^(web|fetch|search)/.test(t)) return 'web';
+  return null;
+}
+
 // --- API endpoints ---
 
 // POST /status — called by Cowork/scripts
 // Body: { state: "working|idle|sleeping|rate_limited", task?: "...", tokens?: 1234, resetsAt?: ISO }
-const VALID_STATES = new Set(['idle', 'working', 'sleeping', 'rate_limited']);
+const VALID_STATES = new Set(['idle', 'working', 'sleeping', 'rate_limited', 'error']);
 
 app.post('/status', requireAuth, (req, res) => {
   const { state, task, tokens, resetsAt } = req.body;
@@ -178,8 +200,13 @@ app.post('/status', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'invalid state' });
   }
 
+  const prevMode = claudeState.mode;
+
   if (state) claudeState.mode = state;
-  if (task) claudeState.task = String(task).slice(0, 200);
+  if (task) {
+    claudeState.task = String(task).slice(0, 200);
+    claudeState.toolType = detectToolType(task);
+  }
 
   if (state === 'working' && tokens) {
     claudeState.tokens = tokens;
@@ -193,8 +220,13 @@ app.post('/status', requireAuth, (req, res) => {
   }
 
   if (state === 'idle') {
+    // Task just finished — add messiness
+    if (prevMode === 'working') {
+      claudeState.messiness = Math.min(100, claudeState.messiness + 8 + Math.floor(Math.random() * 8));
+    }
     claudeState.task = null;
     claudeState.tokens = 0;
+    claudeState.toolType = null;
   }
 
   if (state === 'rate_limited' && resetsAt) {
