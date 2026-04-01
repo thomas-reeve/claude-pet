@@ -1786,17 +1786,24 @@
   #clock {
     position: absolute;
     top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 20px;
     z-index: 35;
-    text-align: center;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(8px);
+    transition: background 1s, border-color 1s;
     pointer-events: none;
   }
   #clock-time {
     font-family: var(--vt);
-    font-size: 36px;
+    font-size: 16px;
     color: var(--text);
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     line-height: 1;
     transition: color var(--transition-speed);
   }
@@ -1809,14 +1816,17 @@
   }
   #clock-date {
     font-family: var(--vt);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text2);
-    letter-spacing: 1px;
-    margin-top: 2px;
+    letter-spacing: 0.5px;
     transition: color var(--transition-speed);
   }
-  [data-time="night"] #clock-time { color: #556688; }
-  [data-time="night"] #clock-date { color: #445566; }
+  #clock .clock-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
 
   /* MOBILE RESPONSIVE */
   @media (max-width: 600px) {
@@ -1826,11 +1836,11 @@
     }
     #room { transform: translateX(-50%) scale(0.7); transform-origin: bottom center; }
     #food-bowl { transform: scale(0.7); transform-origin: bottom left; left: calc(50% - 160px); }
-    #clock { top: 10px; }
-    #clock-time { font-size: 24px; }
-    #clock-date { font-size: 11px; }
+    #clock { top: 10px; right: 10px; padding: 6px 10px; }
+    #clock-time { font-size: 13px; }
+    #clock-date { font-size: 10px; }
     #nameplate {
-      top: 50px; left: 10px; right: 10px;
+      top: 10px; left: 10px; right: auto;
       font-size: 9px;
       padding: 6px 10px;
       gap: 6px;
@@ -2012,8 +2022,9 @@ eat(t)
 
   <!-- CLOCK -->
   <div id="clock">
-    <div id="clock-time"><span id="clock-h">00</span><span id="clock-colon">:</span><span id="clock-m">00</span></div>
-    <div id="clock-date">---</div>
+    <span id="clock-time"><span id="clock-h">00</span><span id="clock-colon">:</span><span id="clock-m">00</span></span>
+    <div class="clock-sep"></div>
+    <span id="clock-date">---</span>
   </div>
 
   <!-- NAMEPLATE -->
